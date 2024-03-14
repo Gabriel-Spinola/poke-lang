@@ -8,3 +8,6 @@ int b = 2
 ## functions
 fun sum(int a, int b) -> int:
   return a + b
+
+## STD Lib
+poke print "Torta de maçã"
