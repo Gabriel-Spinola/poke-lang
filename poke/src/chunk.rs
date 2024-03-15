@@ -1,3 +1,5 @@
+// LINK - https://craftinginterpreters.com/chunks-of-bytecode.html
+
 #[repr(u8)]
 #[derive(Debug)]
 pub enum OpCode {
@@ -19,7 +21,7 @@ impl Chunk {
     }
     
     fn disassemble_instruction(&self, offset: usize) -> (String, usize) {
-        let instruction = usize::from(self.code[offset]);
+        let instruction = self.code[offset] as usize;
         if let Some(operation) = OP_CODES_MAP.get(instruction) {
             return match operation {
                 OpCode::OpReturn => ("RETURN".to_string(), offset + 1),
@@ -41,10 +43,9 @@ impl Chunk {
     pub fn write_chunk(chunk: &mut Chunk, byte: u8) {
         if chunk.capacity < chunk.count + 1 {
             chunk.capacity = Chunk::grow_capacity(chunk.capacity);
-            chunk.code.push(byte);
         }
 
-        chunk.code[chunk.count as usize] = byte;
+        chunk.code.push(byte);
         chunk.count += 1;
     }
 
@@ -56,7 +57,7 @@ impl Chunk {
         while offset < self.count as usize {
             (text, offset) = self.disassemble_instruction(offset);
 
-            println!("{:04} {}", offset, text);
+            println!("\t- {:04} {}", offset, text);
         }
     }
 }
