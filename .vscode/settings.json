@@ -5,6 +5,7 @@
         ".prettierrc": "json",
         "*.jsn": "hlsl",
         "memory.h": "c",
-        "common.h": "c"
+        "common.h": "c",
+        "vector": "cpp"
     }
 }
