@@ -1,5 +1,7 @@
 // LINK - https://craftinginterpreters.com/chunks-of-bytecode.html
 
+use std::collections::HashMap;
+
 #[repr(u8)]
 #[derive(Debug)]
 pub enum OpCode {
@@ -37,15 +39,6 @@ impl OpCode {
 
 pub const OP_CODES_MAP: [OpCode; 3] = [OpCode::Return, OpCode::Constant, OpCode::ConstantLong];
 
-/// TODO - Devise an encoding that compresses the line information for a series
-/// of instructions on the same line. Change writeChunk() to write this 
-/// compressed form, and implement a getLine() function that, given the index of
-/// an instruction, determines the line where the instruction occurs.
-struct LineInfo {
-    line_number: i32,
-    instructions: Vec<u8>,
-}
-
 type Value = f64;
 
 pub struct Chunk {
@@ -54,7 +47,7 @@ pub struct Chunk {
 
     pub code: Vec<u8>,
     pub constants: Vec<Value>,
-    pub lines: Vec<i32>,
+    pub lines: HashMap<i32, Vec<usize>>,
 }
 
 impl Chunk {
@@ -69,8 +62,12 @@ impl Chunk {
         return self.constants.len() - 1;
     }
 
-    fn get_line(instruction_index: usize) {
-        
+    fn write_line(&mut self, new_line: i32, instruction_index: usize) {
+        return self
+            .lines
+            .entry(new_line)
+            .or_insert_with(Vec::new)
+            .push(instruction_index);
     }
 
     pub fn init_chunk() -> Chunk {
@@ -80,17 +77,17 @@ impl Chunk {
 
             code: Vec::new(),
             constants: Vec::new(),
-            lines: Vec::new(),
+            lines: HashMap::new(),
         };
     }
 
-    pub fn write_chunk(&mut self, byte: u8, line: i32) {
+    pub fn write_chunk(&mut self, byte: u8, new_line: i32) {
         if self.capacity < self.count + 1 {
             self.capacity = Chunk::grow_capacity(self.capacity);
         }
 
         self.code.push(byte);
-        self.lines.push(line);
+        self.write_line(new_line, self.code.len() - 1);
 
         self.count += 1;
     }
@@ -109,6 +106,16 @@ impl Chunk {
         self.write_chunk((constant_index & 0xFF) as u8, line); // Lower 8 bits
         self.write_chunk(((constant_index >> 8) & 0xFF) as u8, line); // Next 8 bits
         self.write_chunk(((constant_index >> 16) & 0xFF) as u8, line); // Upper 8 bits
+    }
+
+    pub fn get_line(&self, instruction_index: &usize) -> Option<&i32> {
+        for (line, instructions) in &self.lines {
+            if instructions.contains(instruction_index) {
+                return Some(line);
+            }
+        }
+
+        return None;
     }
 }
 
@@ -153,11 +160,12 @@ mod tests {
 
         // Write small index constants
         for i in 0..small_const_size {
-            chunk.write_constant(i as f64, 1);
+            chunk.write_constant(i as Value, 1);
         }
 
+        // Write and test large index constants
         for i in 0..4 {
-            chunk.write_constant(i as f64, 1);
+            chunk.write_constant(i as Value, 1);
 
             assert_eq!(
                 chunk.count as usize,
@@ -165,5 +173,23 @@ mod tests {
                 "Incorrect total count of bytes in the chunk"
             );
         }
+    }
+
+    // TODO implement tests
+    #[test]
+    fn test_lines() {
+        let mut chunk = Chunk::init_chunk();
+
+        chunk.write_chunk(OpCode::Return.to_byte(), 123);
+        chunk.write_constant(1.2, 123);
+        chunk.write_constant(1.2, 123);
+        chunk.write_constant(1.2, 123);
+        chunk.write_constant(1.2, 128);
+        chunk.write_constant(1.2, 182);
+    
+        println!("LINES LENGTH {}", chunk.lines.len());
+
+        // test for the correct amount of lines
+        // test for correct instructions stored
     }
 }

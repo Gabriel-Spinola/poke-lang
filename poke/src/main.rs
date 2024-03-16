@@ -10,6 +10,9 @@ fn main() {
     let mut chunk = Chunk::init_chunk();
     chunk.write_chunk(OpCode::Return.to_byte(), 123);
     chunk.write_constant(1.2, 123);
+    chunk.write_constant(1.2, 123);
+    chunk.write_constant(1.2, 128);
+    chunk.write_constant(1.2, 182);
 
     disassemble_chunk(&chunk, "test chunk");
 }

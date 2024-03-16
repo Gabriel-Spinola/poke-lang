@@ -1,7 +1,7 @@
 use crate::chunk::{Chunk, OpCode, OP_CODES_MAP};
 
 fn constant_long_instruction(chunk: &Chunk, offset: usize) -> (String, usize) {
-    // by combining the three bytes using `|`, we merge thenm into a single 
+    // by combining the three bytes using `|`, we merge thenm into a single
     // 24 bits unsigned integer, thus representing 2^16 (65.536)
     let constant_index = (chunk.code[offset + 1] as u32) // lowest byte
         | ((chunk.code[offset + 2] as u32) << 8) // mid byte
@@ -38,15 +38,21 @@ fn constant_instruction(chunk: &Chunk, offset: usize) -> (String, usize) {
 }
 
 fn disassemble_instruction(chunk: &Chunk, offset: usize) -> (String, usize) {
-    if (offset > 0) && (chunk.lines[offset] == chunk.lines[offset - 1]) {
+    // Print lines info
+    let instruction = chunk.code[offset];
+    let line = chunk.get_line(&offset).expect(&format!(
+        "line not found for given instruction: {:04}",
+        instruction
+    ));
+
+    if (offset > 0) && (line == chunk.get_line(&(offset - 1)).unwrap()) {
         print!("  |  ");
     } else {
-        print!("{:04} ", chunk.lines[offset]);
+        print!("{:04} ", line);
     }
 
-    let instruction = chunk.code[offset] as usize;
-
-    if let Some(operation) = OP_CODES_MAP.get(instruction) {
+    // Print Operations info
+    if let Some(operation) = OP_CODES_MAP.get(instruction as usize) {
         return match operation {
             OpCode::Return => ("OP_RETURN".to_string(), offset + 1),
             OpCode::Constant => constant_instruction(chunk, offset),
@@ -54,6 +60,7 @@ fn disassemble_instruction(chunk: &Chunk, offset: usize) -> (String, usize) {
         };
     }
 
+    // Not found case
     return (
         format!("Unknown operator code: {}", instruction),
         offset + 1,
