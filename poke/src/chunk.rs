@@ -3,12 +3,26 @@
 #[repr(u8)]
 #[derive(Debug)]
 pub enum OpCode {
-    /// Single byte instruction
+    /// Single byte instruction.
+    ///
+    /// Represents the `OP_RETURN` instruction, which indicates the end of a function or method.
     Return,
 
     /// 2 byte instruction.
-    /// 1st: opcode, 2nd: constant index
+    ///
+    /// Represents the `OP_CONSTANT` instruction, which loads a constant value from the constant pool.
+    /// - 1: Opcode (`OP_CONSTANT`)
+    /// - 2: Index of the constant in the constant pool
     Constant,
+
+    /// 4 bytes instruction.
+    ///
+    /// Represents the `OP_CONSTANT_LONG` instruction, which loads a constant value from the constant pool using a 24-bit index.
+    /// - 1: Opcode (`OP_CONSTANT_LONG`)
+    /// - 2: Lowest byte of the index
+    /// - 3: Middle byte of the index
+    /// - 4: Highest byte of the index
+    ConstantLong,
 }
 
 impl OpCode {
@@ -16,13 +30,14 @@ impl OpCode {
         return match self {
             OpCode::Return => 0,
             OpCode::Constant => 1,
+            OpCode::ConstantLong => 2,
         };
     }
 }
 
-pub enum Data {}
+pub const OP_CODES_MAP: [OpCode; 3] = [OpCode::Return, OpCode::Constant, OpCode::ConstantLong];
 
-pub const OP_CODES_MAP: [OpCode; 2] = [OpCode::Return, OpCode::Constant];
+pub enum Data {}
 
 type Value = f64;
 
@@ -52,20 +67,97 @@ impl Chunk {
         };
     }
 
-    pub fn write_chunk(chunk: &mut Chunk, byte: u8, line: i32) {
-        if chunk.capacity < chunk.count + 1 {
-            chunk.capacity = Chunk::grow_capacity(chunk.capacity);
+    pub fn write_chunk(&mut self, byte: u8, line: i32) {
+        if self.capacity < self.count + 1 {
+            self.capacity = Chunk::grow_capacity(self.capacity);
         }
 
-        chunk.code.push(byte);
-        chunk.lines.push(line);
+        self.code.push(byte);
+        self.lines.push(line);
 
-        chunk.count += 1;
+        self.count += 1;
     }
 
-    pub fn add_constant(&mut self, constant: Value) -> usize {
+    fn add_constant(&mut self, constant: Value) -> usize {
         self.constants.push(constant);
 
         return self.constants.len() - 1;
+    }
+
+    pub fn write_constant(&mut self, constant: Value, line: i32) {
+        let constant_index = self.add_constant(constant);
+
+        if constant_index < 256 {
+            self.write_chunk(OpCode::Constant.to_byte(), line);
+            self.write_chunk(constant_index as u8, line);
+
+            return;
+        }
+
+        println!("INDEX:{}", constant_index);
+
+        self.write_chunk(OpCode::Constant.to_byte(), line);
+        self.write_chunk((constant_index & 0xFF) as u8, line); // Lower 8 bits
+        self.write_chunk(((constant_index >> 8) & 0xFF) as u8, line); // Next 8 bits
+        self.write_chunk(((constant_index >> 16) & 0xFF) as u8, line); // Upper 8 bits
+
+        println!()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_write_constant_small_index() {
+        let mut chunk = Chunk::init_chunk();
+        let value = 42.0;
+        let instructions_count = 2;
+
+        chunk.write_constant(value, 1);
+
+        // Verify that the correct bytecode instructions are written
+        assert_eq!(
+            chunk.code,
+            vec![OpCode::Constant.to_byte(), 0],
+            "Incorrect bytecode instructions for OpCode::Constant"
+        );
+
+        // Verify chunk bytes count
+        assert_eq!(
+            chunk.count, instructions_count,
+            "Incorrect number of bytes in the chunk"
+        );
+
+        // Verify constant added to constants array
+        assert_eq!(
+            chunk.constants,
+            vec![value],
+            "Constant not correctly added to constants array"
+        );
+    }
+
+    #[test]
+    fn test_write_constant_large_index() {
+        let mut chunk = Chunk::init_chunk();
+        let instructions_count = 4;
+        let small_const_size = 256;
+
+        // Write small index constants
+        for i in 0..small_const_size {
+            chunk.write_constant(i as f64, 1);
+        }
+
+        for i in 0..4 {
+            println!("{}", i);
+            chunk.write_constant(i as f64, 1);
+
+            assert_eq!(
+                chunk.count as usize,
+                (instructions_count / 2 * small_const_size) + ((i + 1) * instructions_count),
+                "Incorrect total count of bytes in the chunk"
+            );
+        }
     }
 }
