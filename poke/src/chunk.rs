@@ -51,6 +51,17 @@ pub struct Chunk {
 }
 
 impl Chunk {
+    pub fn new() -> Self {
+        return Chunk {
+            capacity: 0,
+            count: 0,
+
+            code: Vec::new(),
+            constants: Vec::new(),
+            lines: HashMap::new(),
+        };
+    }
+
     /// Grows by a factor of two
     fn grow_capacity(capacity: i32) -> i32 {
         return if capacity < 8 { 8 } else { capacity * 2 };
@@ -70,17 +81,6 @@ impl Chunk {
             .entry(new_line)
             .or_insert_with(Vec::new)
             .push(instruction_index);
-    }
-
-    pub fn init_chunk() -> Chunk {
-        return Chunk {
-            capacity: 0,
-            count: 0,
-
-            code: Vec::new(),
-            constants: Vec::new(),
-            lines: HashMap::new(),
-        };
     }
 
     pub fn write_chunk(&mut self, byte: u8, new_line: i32) {
@@ -128,7 +128,7 @@ mod tests {
 
     #[test]
     fn test_write_constant_small_index() {
-        let mut chunk = Chunk::init_chunk();
+        let mut chunk = Chunk::new();
         let value = 42.0;
         let instructions_count = 2;
 
@@ -157,7 +157,7 @@ mod tests {
 
     #[test]
     fn test_write_constant_large_index() {
-        let mut chunk = Chunk::init_chunk();
+        let mut chunk = Chunk::new();
         let instructions_count = 4;
         let small_const_size = 256;
 
@@ -181,7 +181,7 @@ mod tests {
     // TODO implement tests
     #[test]
     fn test_write_lines() {
-        let mut chunk = Chunk::init_chunk();
+        let mut chunk = Chunk::new();
         let const_intruction_size = 2;
 
         chunk.write_chunk(OpCode::Return.to_byte(), 123);
