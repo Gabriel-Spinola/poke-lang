@@ -94,8 +94,6 @@ impl Chunk {
             return;
         }
 
-        println!("INDEX:{}", constant_index);
-
         self.write_chunk(OpCode::Constant.to_byte(), line);
         self.write_chunk((constant_index & 0xFF) as u8, line); // Lower 8 bits
         self.write_chunk(((constant_index >> 8) & 0xFF) as u8, line); // Next 8 bits
