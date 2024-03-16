@@ -37,7 +37,14 @@ impl OpCode {
 
 pub const OP_CODES_MAP: [OpCode; 3] = [OpCode::Return, OpCode::Constant, OpCode::ConstantLong];
 
-pub enum Data {}
+/// TODO - Devise an encoding that compresses the line information for a series
+/// of instructions on the same line. Change writeChunk() to write this 
+/// compressed form, and implement a getLine() function that, given the index of
+/// an instruction, determines the line where the instruction occurs.
+struct LineInfo {
+    line_number: i32,
+    instructions: Vec<u8>,
+}
 
 type Value = f64;
 
@@ -54,6 +61,16 @@ impl Chunk {
     /// Grows by a factor of two
     fn grow_capacity(capacity: i32) -> i32 {
         return if capacity < 8 { 8 } else { capacity * 2 };
+    }
+
+    fn add_constant(&mut self, constant: Value) -> usize {
+        self.constants.push(constant);
+
+        return self.constants.len() - 1;
+    }
+
+    fn get_line(instruction_index: usize) {
+        
     }
 
     pub fn init_chunk() -> Chunk {
@@ -78,12 +95,6 @@ impl Chunk {
         self.count += 1;
     }
 
-    fn add_constant(&mut self, constant: Value) -> usize {
-        self.constants.push(constant);
-
-        return self.constants.len() - 1;
-    }
-
     pub fn write_constant(&mut self, constant: Value, line: i32) {
         let constant_index = self.add_constant(constant);
 
@@ -98,8 +109,6 @@ impl Chunk {
         self.write_chunk((constant_index & 0xFF) as u8, line); // Lower 8 bits
         self.write_chunk(((constant_index >> 8) & 0xFF) as u8, line); // Next 8 bits
         self.write_chunk(((constant_index >> 16) & 0xFF) as u8, line); // Upper 8 bits
-
-        println!()
     }
 }
 
