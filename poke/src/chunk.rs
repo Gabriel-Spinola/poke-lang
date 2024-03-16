@@ -39,7 +39,7 @@ impl OpCode {
 
 pub const OP_CODES_MAP: [OpCode; 3] = [OpCode::Return, OpCode::Constant, OpCode::ConstantLong];
 
-type Value = f64;
+pub type Value = f64;
 
 pub struct Chunk {
     pub count: i32,
@@ -178,7 +178,6 @@ mod tests {
         }
     }
 
-    // TODO implement tests
     #[test]
     fn test_write_lines() {
         let mut chunk = Chunk::new();

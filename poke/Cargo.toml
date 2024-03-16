@@ -3,4 +3,8 @@ name = "poke"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default=["debug_trace_execution"]
+debug_trace_execution=[]
+
 [dependencies]

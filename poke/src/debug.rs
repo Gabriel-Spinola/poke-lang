@@ -37,7 +37,8 @@ fn constant_instruction(chunk: &Chunk, offset: usize) -> (String, usize) {
     );
 }
 
-fn disassemble_instruction(chunk: &Chunk, offset: usize) -> (String, usize) {
+#[cfg(feature = "debug_trace_execution")]
+pub fn disassemble_instruction(chunk: &Chunk, offset: usize) -> (String, usize) {
     // Print lines info
     let instruction = chunk.code[offset];
     let line = chunk.get_line(&offset).expect(&format!(
@@ -67,6 +68,7 @@ fn disassemble_instruction(chunk: &Chunk, offset: usize) -> (String, usize) {
     );
 }
 
+#[cfg(feature = "debug_trace_execution")]
 pub fn disassemble_chunk(chunk: &Chunk, name: &str) {
     println!("==== Chunk {:?} Disassemble ====", name);
     println!("LINE | OPCODE | VALUE? | ...\n");
