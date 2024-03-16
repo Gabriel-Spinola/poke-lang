@@ -62,9 +62,11 @@ impl Chunk {
         return self.constants.len() - 1;
     }
 
+    /// Associates the provided instruction index with the given line number
+    /// in the Chunk's line information. If the line number doesn't exist,
+    /// a new one is created.
     fn write_line(&mut self, new_line: i32, instruction_index: usize) {
-        return self
-            .lines
+        self.lines
             .entry(new_line)
             .or_insert_with(Vec::new)
             .push(instruction_index);
@@ -103,11 +105,12 @@ impl Chunk {
         }
 
         self.write_chunk(OpCode::Constant.to_byte(), line);
-        self.write_chunk((constant_index & 0xFF) as u8, line); // Lower 8 bits
-        self.write_chunk(((constant_index >> 8) & 0xFF) as u8, line); // Next 8 bits
-        self.write_chunk(((constant_index >> 16) & 0xFF) as u8, line); // Upper 8 bits
+        self.write_chunk((constant_index & 0xFF) as u8, line); // Write Lower 8 bits
+        self.write_chunk(((constant_index >> 8) & 0xFF) as u8, line); // Write Next 8 bits
+        self.write_chunk(((constant_index >> 16) & 0xFF) as u8, line); // Write Upper 8 bits
     }
 
+    /// Returns the line number of a given instructions index
     pub fn get_line(&self, instruction_index: &usize) -> Option<&i32> {
         for (line, instructions) in &self.lines {
             if instructions.contains(instruction_index) {
@@ -177,8 +180,9 @@ mod tests {
 
     // TODO implement tests
     #[test]
-    fn test_lines() {
+    fn test_write_lines() {
         let mut chunk = Chunk::init_chunk();
+        let const_intruction_size = 2;
 
         chunk.write_chunk(OpCode::Return.to_byte(), 123);
         chunk.write_constant(1.2, 123);
@@ -186,10 +190,16 @@ mod tests {
         chunk.write_constant(1.2, 123);
         chunk.write_constant(1.2, 128);
         chunk.write_constant(1.2, 182);
-    
-        println!("LINES LENGTH {}", chunk.lines.len());
 
-        // test for the correct amount of lines
-        // test for correct instructions stored
+        // Test line length
+        assert_eq!(chunk.lines.len(), 3);
+
+        // Test values
+        assert_eq!(chunk.get_line(&0).unwrap(), &123); // test for OP_RETURN
+        assert_eq!(chunk.get_line(&(1 * const_intruction_size)).unwrap(), &123);
+        assert_eq!(chunk.get_line(&(2 * const_intruction_size)).unwrap(), &123);
+        assert_eq!(chunk.get_line(&(3 * const_intruction_size)).unwrap(), &123);
+        assert_eq!(chunk.get_line(&(4 * const_intruction_size)).unwrap(), &128);
+        assert_eq!(chunk.get_line(&(5 * const_intruction_size)).unwrap(), &182);
     }
 }
