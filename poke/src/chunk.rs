@@ -157,7 +157,6 @@ mod tests {
         }
 
         for i in 0..4 {
-            println!("{}", i);
             chunk.write_constant(i as f64, 1);
 
             assert_eq!(
