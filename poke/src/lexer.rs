@@ -79,6 +79,8 @@ pub enum Token {
     Float,
     String,
 
+    Identifier, Numbers,
+
     // End of line
     Error,
     EoS,
