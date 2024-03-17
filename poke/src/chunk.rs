@@ -1,9 +1,10 @@
 // LINK - https://craftinginterpreters.com/chunks-of-bytecode.html
 
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt};
+use macros::AllVariants;
 
 #[repr(u8)]
-#[derive(Debug)]
+#[derive(AllVariants, Debug)]
 pub enum OpCode {
     /// Single byte instruction.
     ///
@@ -25,19 +26,18 @@ pub enum OpCode {
     /// - 3: Middle byte of the index
     /// - 4: Highest byte of the index
     ConstantLong,
+
+    /// Single byte instruction.
+    ///
+    /// Represents the `OP_NEGATE` instruction, which negates a given `Value`.
+    Negate,
 }
 
-impl OpCode {
-    pub fn to_byte(&self) -> u8 {
-        return match self {
-            OpCode::Return => 0,
-            OpCode::Constant => 1,
-            OpCode::ConstantLong => 2,
-        };
+impl fmt::Display for OpCode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
     }
 }
-
-pub const OP_CODES_MAP: [OpCode; 3] = [OpCode::Return, OpCode::Constant, OpCode::ConstantLong];
 
 pub type Value = f64;
 
@@ -98,13 +98,13 @@ impl Chunk {
         let constant_index = self.add_constant(constant);
 
         if constant_index < 256 {
-            self.write_chunk(OpCode::Constant.to_byte(), line);
+            self.write_chunk(OpCode::Constant as u8, line);
             self.write_chunk(constant_index as u8, line);
 
             return;
         }
 
-        self.write_chunk(OpCode::Constant.to_byte(), line);
+        self.write_chunk(OpCode::Constant as u8, line);
         self.write_chunk((constant_index & 0xFF) as u8, line); // Write Lower 8 bits
         self.write_chunk(((constant_index >> 8) & 0xFF) as u8, line); // Write Next 8 bits
         self.write_chunk(((constant_index >> 16) & 0xFF) as u8, line); // Write Upper 8 bits
@@ -137,7 +137,7 @@ mod tests {
         // Verify that the correct bytecode instructions are written
         assert_eq!(
             chunk.code,
-            vec![OpCode::Constant.to_byte(), 0],
+            vec![OpCode::Constant as u8, 0],
             "Incorrect bytecode instructions for OpCode::Constant"
         );
 
@@ -183,7 +183,7 @@ mod tests {
         let mut chunk = Chunk::new();
         let const_intruction_size = 2;
 
-        chunk.write_chunk(OpCode::Return.to_byte(), 123);
+        chunk.write_chunk(OpCode::Return as u8, 123);
         chunk.write_constant(1.2, 123);
         chunk.write_constant(1.2, 123);
         chunk.write_constant(1.2, 123);

@@ -13,8 +13,8 @@ fn main() {
     chunk.write_constant(1.2, 123);
     chunk.write_constant(1.5, 123);
     chunk.write_constant(6.2, 128);
-    chunk.write_constant(3.5, 182);
-    chunk.write_chunk(OpCode::Return.to_byte(), 123);
+    chunk.write_chunk(OpCode::Negate as u8, 2);
+    chunk.write_chunk(OpCode::Return as u8, 123);
 
     #[cfg(feature = "debug_trace_execution")]
     {

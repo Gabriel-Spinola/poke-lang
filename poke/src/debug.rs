@@ -1,4 +1,4 @@
-use crate::chunk::{Chunk, OpCode, OP_CODES_MAP};
+use crate::chunk::{Chunk, OpCode};
 
 fn constant_long_instruction(chunk: &Chunk, offset: usize) -> (String, usize) {
     // by combining the three bytes using `|`, we merge thenm into a single
@@ -19,6 +19,10 @@ fn constant_long_instruction(chunk: &Chunk, offset: usize) -> (String, usize) {
         ),
         offset + instruction_size,
     );
+}
+
+fn simple_instruction(operation: &str, offset: usize) -> (String, usize) {
+    return (operation.to_string(), offset + 1 );
 }
 
 fn constant_instruction(chunk: &Chunk, offset: usize) -> (String, usize) {
@@ -53,11 +57,12 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize) -> (String, usize) 
     }
 
     // Print Operations info
-    if let Some(operation) = OP_CODES_MAP.get(instruction as usize) {
+    if let Some(operation) = OpCode::all_variants().get(instruction as usize) {
         return match operation {
-            OpCode::Return => ("OP_RETURN".to_string(), offset + 1),
+            OpCode::Return => simple_instruction("OP_RETURN", offset),
             OpCode::Constant => constant_instruction(chunk, offset),
             OpCode::ConstantLong => constant_long_instruction(chunk, offset),
+            OpCode::Negate => simple_instruction("OP_NEGATE", offset),
         };
     }
 

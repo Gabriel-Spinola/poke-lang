@@ -1,6 +1,6 @@
 use crate::{
-    chunk::{Chunk, OpCode, Value, OP_CODES_MAP},
-    disassemble_chunk, disassemble_instruction,
+    chunk::{Chunk, OpCode, Value},
+    disassemble_instruction,
 };
 
 pub enum InterpretResult {
@@ -11,14 +11,20 @@ pub enum InterpretResult {
 
 pub struct VirtualMachine<'a> {
     chunk: &'a Chunk,
-
+    // REVIEW - might be a slow solution. In the book a raw pointer is used wich is usafe rust
     /// Holds the index of the current instruction within the bytecode array
     ip: usize,
+
+    stack: Vec<Value>,
 }
 
 impl<'a> VirtualMachine<'a> {
     pub fn new(chunk: &'a Chunk) -> Self {
-        return VirtualMachine { chunk, ip: 0 };
+        return VirtualMachine {
+            chunk,
+            ip: 0,
+            stack: Vec::new(),
+        };
     }
 
     fn peek_current_instruction(&self) -> &u8 {
@@ -37,23 +43,47 @@ impl<'a> VirtualMachine<'a> {
     }
 
     pub fn run_interpreter(&mut self) -> InterpretResult {
+        #[cfg(feature = "debug_trace_execution")]
+        println!("\n==== VM Logging ====");
+
         loop {
             // prints each instruction right before executing it.
             #[cfg(feature = "debug_trace_execution")]
             {
+                for value in &self.stack {
+                    println!("[{}]", value);
+                }
+
                 disassemble_instruction(&self.chunk, self.ip);
             }
 
             let instruction: u8 = self.advance_ip(1);
-            if let Some(operation) = OP_CODES_MAP.get(instruction as usize) {
+            if let Some(operation) = OpCode::all_variants().get(instruction as usize) {
                 return match operation {
                     OpCode::Constant => {
                         let constant: Value = self.chunk.constants[self.advance_ip(1) as usize];
                         println!("CONSTANT VALUE {:?}", constant);
 
+                        self.stack.push(constant);
+
                         continue;
                     }
-                    OpCode::Return => InterpretResult::OK,
+                    OpCode::Negate => {
+                        if let Some(value) = self.stack.pop() {
+                            // Negate the given value
+                            self.stack.push(-value);
+                        }
+
+                        continue;
+                    },
+                    OpCode::Return => {
+                        // Pop the top
+                        if let Some(value) = self.stack.pop() {
+                            println!("Popped from stack: {}", value);
+                        }
+
+                        return InterpretResult::OK;
+                    }
                     _ => InterpretResult::CompilerError,
                 };
             }
