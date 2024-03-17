@@ -1,5 +1,5 @@
 use crate::{
-    chunk::{Chunk, OpCode, Value},
+    chunk::{Chunk, ByteCode, Value},
     disassemble_instruction,
 };
 
@@ -44,7 +44,7 @@ impl<'a> VirtualMachine<'a> {
 
     pub fn run_interpreter(&mut self) -> InterpretResult {
         #[cfg(feature = "debug_trace_execution")]
-        println!("\n==== VM Logging ====");
+        println!("\n==== Stack Trace ====");
 
         let mut offset;
         let mut text: String;
@@ -57,20 +57,21 @@ impl<'a> VirtualMachine<'a> {
                     println!("STACK [{}]", value);
                 }
 
+                println!("-");
                 (text, offset) = disassemble_instruction(&self.chunk, self.ip);
                 println!("{:04} {}", offset, text);
             }
 
             let instruction: u8 = self.advance_ip(1);
-            if let Some(operation) = OpCode::all_variants().get(instruction as usize) {
+            if let Some(operation) = ByteCode::all_variants().get(instruction as usize) {
                 return match operation {
-                    OpCode::Constant => {
+                    ByteCode::Constant => {
                         let constant: Value = self.chunk.constants[self.advance_ip(1) as usize];
                         self.stack.push(constant);
 
                         continue;
                     }
-                    OpCode::Negate => {
+                    ByteCode::Negate => {
                         if let Some(value) = self.stack.pop() {
                             // Negate the given value
                             self.stack.push(-value);
@@ -78,7 +79,7 @@ impl<'a> VirtualMachine<'a> {
 
                         continue;
                     },
-                    OpCode::Return => {
+                    ByteCode::Return => {
                         // Pop the top
                         if let Some(value) = self.stack.pop() {
                             println!("Popped from stack: {}", value);

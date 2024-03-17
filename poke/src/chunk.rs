@@ -3,9 +3,10 @@
 use std::{collections::HashMap, fmt};
 use macros::AllVariants;
 
+// REVIEW - Consider using variant parameters
 #[repr(u8)]
 #[derive(AllVariants, Debug)]
-pub enum OpCode {
+pub enum ByteCode {
     /// Single byte instruction.
     ///
     /// Represents the `OP_RETURN` instruction, which indicates the end of a function or method.
@@ -27,13 +28,18 @@ pub enum OpCode {
     /// - 4: Highest byte of the index
     ConstantLong,
 
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+
     /// Single byte instruction.
     ///
     /// Represents the `OP_NEGATE` instruction, which negates a given `Value`.
     Negate,
 }
 
-impl fmt::Display for OpCode {
+impl fmt::Display for ByteCode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }
@@ -98,13 +104,13 @@ impl Chunk {
         let constant_index = self.add_constant(constant);
 
         if constant_index < 256 {
-            self.write_chunk(OpCode::Constant as u8, line);
+            self.write_chunk(ByteCode::Constant as u8, line);
             self.write_chunk(constant_index as u8, line);
 
             return;
         }
 
-        self.write_chunk(OpCode::Constant as u8, line);
+        self.write_chunk(ByteCode::Constant as u8, line);
         self.write_chunk((constant_index & 0xFF) as u8, line); // Write Lower 8 bits
         self.write_chunk(((constant_index >> 8) & 0xFF) as u8, line); // Write Next 8 bits
         self.write_chunk(((constant_index >> 16) & 0xFF) as u8, line); // Write Upper 8 bits
@@ -137,7 +143,7 @@ mod tests {
         // Verify that the correct bytecode instructions are written
         assert_eq!(
             chunk.code,
-            vec![OpCode::Constant as u8, 0],
+            vec![ByteCode::Constant as u8, 0],
             "Incorrect bytecode instructions for OpCode::Constant"
         );
 
@@ -183,7 +189,7 @@ mod tests {
         let mut chunk = Chunk::new();
         let const_intruction_size = 2;
 
-        chunk.write_chunk(OpCode::Return as u8, 123);
+        chunk.write_chunk(ByteCode::Return as u8, 123);
         chunk.write_constant(1.2, 123);
         chunk.write_constant(1.2, 123);
         chunk.write_constant(1.2, 123);
