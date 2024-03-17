@@ -1,14 +1,32 @@
 mod chunk;
 mod debug;
+mod lexer;
 mod value;
 mod vm;
+use std::{env, fs::File, io::BufReader};
+
 use chunk::ByteCode;
 use debug::*;
+use lexer::Lexer;
 use vm::{InterpretResult, VirtualMachine};
 
 use crate::chunk::Chunk;
 
 fn main() {
+    let args: Vec<String> = env::args().collect();
+    if args.len() != 2 {
+        println!("Usage: {} script", args[0]);
+
+        return;
+    }
+
+    let file = File::open(&args[1]).unwrap();
+    let lexer = Lexer::new(BufReader::new(file));
+
+    run_vm();
+}
+
+fn run_vm() {
     let mut chunk = Chunk::new();
     chunk.write_constant(1.2, 123);
     chunk.write_constant(1.5, 123);

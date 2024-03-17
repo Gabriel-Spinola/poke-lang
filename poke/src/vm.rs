@@ -77,60 +77,65 @@ impl<'a> VirtualMachine<'a> {
             }
 
             let instruction: u8 = self.advance_ip(1);
-            if let Some(operation) = ByteCode::all_variants().get(instruction as usize) {
-                return match operation {
-                    ByteCode::Constant => {
-                        let constant: Value = self.chunk.constants[self.advance_ip(1) as usize];
-                        self.stack.push(constant);
-
-                        continue;
-                    }
-                    ByteCode::Negate => {
-                        if let Some(value) = self.stack.pop() {
-                            // Negate the given value
-                            self.stack.push(-value);
-                        }
-
-                        continue;
-                    }
-
-                    ByteCode::Add => {
-                        self.binary_op(ops::Add::add)
-                            .unwrap_or(InterpretResult::RuntimeError);
-
-                        continue;
-                    }
-                    ByteCode::Subtract => {
-                        self.binary_op(ops::Sub::sub)
-                            .unwrap_or(InterpretResult::RuntimeError);
-
-                        continue;
-                    }
-                    ByteCode::Multiply => {
-                        self.binary_op(ops::Mul::mul)
-                            .unwrap_or(InterpretResult::RuntimeError);
-
-                        continue;
-                    }
-                    ByteCode::Divide => {
-                        self.binary_op(ops::Div::div)
-                            .unwrap_or(InterpretResult::RuntimeError);
-
-                        continue;
-                    }
-
-                    ByteCode::Return => {
-                        // Pop the top
-                        if let Some(value) = self.stack.pop() {
-                            println!("Popped from stack: {}", value);
-                        }
-
-                        return InterpretResult::OK;
-                    }
-
-                    _ => InterpretResult::RuntimeError,
-                };
+            let operation = ByteCode::all_variants().get(instruction as usize);
+            if operation.is_none() {
+                panic!("(vm) instruction not found: {}", instruction)
             }
+
+            return match operation.unwrap() {
+                ByteCode::Constant => {
+                    let constant: Value = self.chunk.constants[self.advance_ip(1) as usize];
+                    self.stack.push(constant);
+
+                    continue;
+                }
+                ByteCode::Negate => {
+                    if let Some(value) = self.stack.pop() {
+                        // Negate the given value
+                        self.stack.push(-value);
+                    }
+
+                    continue;
+                }
+
+                ByteCode::Add => {
+                    self.binary_op(ops::Add::add)
+                        .unwrap_or(InterpretResult::RuntimeError);
+
+                    continue;
+                }
+                ByteCode::Subtract => {
+                    self.binary_op(ops::Sub::sub)
+                        .unwrap_or(InterpretResult::RuntimeError);
+
+                    continue;
+                }
+                ByteCode::Multiply => {
+                    self.binary_op(ops::Mul::mul)
+                        .unwrap_or(InterpretResult::RuntimeError);
+
+                    continue;
+                }
+                ByteCode::Divide => {
+                    self.binary_op(ops::Div::div)
+                        .unwrap_or(InterpretResult::RuntimeError);
+
+                    continue;
+                }
+
+                ByteCode::Return => {
+                    // Pop the top
+                    if let Some(value) = self.stack.pop() {
+                        println!("Popped from stack: {}", value);
+                    }
+
+                    return InterpretResult::OK;
+                }
+
+                _ => InterpretResult::RuntimeError,
+            };
         }
     }
 }
+
+// TODO - write vm tests
