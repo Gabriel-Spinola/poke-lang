@@ -11,3 +11,7 @@ fun sum(int a, int b) -> int:
 
 ## STD Lib
 poke print "Torta de maçã"
+
+
+## keyword
+let ⎓ ᔑᓭᓭ

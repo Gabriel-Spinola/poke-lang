@@ -63,10 +63,10 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize) -> (String, usize) 
             ByteCode::Constant => constant_instruction(chunk, offset),
             ByteCode::ConstantLong => constant_long_instruction(chunk, offset),
             ByteCode::Negate => simple_instruction("OP_NEGATE", offset),
-            ByteCode::Add => todo!(),
-            ByteCode::Subtract => todo!(),
-            ByteCode::Multiply => todo!(),
-            ByteCode::Divide => todo!(),
+            ByteCode::Add => simple_instruction("OP_ADD", offset),
+            ByteCode::Subtract => simple_instruction("OP_SUBTRACT", offset),
+            ByteCode::Multiply => simple_instruction("OP_MULTIPLY", offset),
+            ByteCode::Divide => simple_instruction("OP_DIVIDE", offset),
         };
     }
 

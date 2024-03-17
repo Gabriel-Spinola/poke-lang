@@ -4,7 +4,7 @@ mod value;
 mod vm;
 use chunk::ByteCode;
 use debug::*;
-use vm::VirtualMachine;
+use vm::{InterpretResult, VirtualMachine};
 
 use crate::chunk::Chunk;
 
@@ -12,8 +12,26 @@ fn main() {
     let mut chunk = Chunk::new();
     chunk.write_constant(1.2, 123);
     chunk.write_constant(1.5, 123);
+
     chunk.write_constant(6.2, 128);
     chunk.write_chunk(ByteCode::Negate as u8, 2);
+
+    chunk.write_constant(1.0, 132);
+    chunk.write_constant(2.0, 132);
+    chunk.write_chunk(ByteCode::Add as u8, 132);
+
+    chunk.write_constant(1.0, 132);
+    chunk.write_constant(2.0, 132);
+    chunk.write_chunk(ByteCode::Subtract as u8, 132);
+
+    chunk.write_constant(1.0, 132);
+    chunk.write_constant(2.0, 132);
+    chunk.write_chunk(ByteCode::Multiply as u8, 132);
+
+    chunk.write_constant(1.0, 132);
+    chunk.write_constant(2.0, 132);
+    chunk.write_chunk(ByteCode::Divide as u8, 132);
+
     chunk.write_chunk(ByteCode::Return as u8, 123);
 
     #[cfg(feature = "debug_trace_execution")]
@@ -22,5 +40,8 @@ fn main() {
     }
 
     let mut vm = VirtualMachine::new(&chunk);
-    vm.run_interpreter();
+    let result = vm.run_interpreter();
+    if result != InterpretResult::OK {
+        println!("VM Failed")
+    }
 }

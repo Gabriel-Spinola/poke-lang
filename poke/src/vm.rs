@@ -1,8 +1,11 @@
 use crate::{
-    chunk::{Chunk, ByteCode, Value},
+    chunk::{ByteCode, Chunk, Value},
     disassemble_instruction,
 };
 
+use std::ops;
+
+#[derive(PartialEq)]
 pub enum InterpretResult {
     OK,
     CompilerError,
@@ -42,6 +45,17 @@ impl<'a> VirtualMachine<'a> {
         return val;
     }
 
+    fn binary_op(&mut self, op: fn(Value, Value) -> Value) -> Option<InterpretResult> {
+        let a = self.stack.pop()?;
+        let b = self.stack.pop()?;
+        let op_result = op(a, b);
+
+        self.stack.push(op_result);
+
+        return Some(InterpretResult::OK);
+    }
+
+    // TODO - Make return Result with custom interpret errors
     pub fn run_interpreter(&mut self) -> InterpretResult {
         #[cfg(feature = "debug_trace_execution")]
         println!("\n==== Stack Trace ====");
@@ -78,7 +92,33 @@ impl<'a> VirtualMachine<'a> {
                         }
 
                         continue;
-                    },
+                    }
+
+                    ByteCode::Add => {
+                        self.binary_op(ops::Add::add)
+                            .unwrap_or(InterpretResult::RuntimeError);
+
+                        continue;
+                    }
+                    ByteCode::Subtract => {
+                        self.binary_op(ops::Sub::sub)
+                            .unwrap_or(InterpretResult::RuntimeError);
+
+                        continue;
+                    }
+                    ByteCode::Multiply => {
+                        self.binary_op(ops::Mul::mul)
+                            .unwrap_or(InterpretResult::RuntimeError);
+
+                        continue;
+                    }
+                    ByteCode::Divide => {
+                        self.binary_op(ops::Div::div)
+                            .unwrap_or(InterpretResult::RuntimeError);
+
+                        continue;
+                    }
+
                     ByteCode::Return => {
                         // Pop the top
                         if let Some(value) = self.stack.pop() {
@@ -87,7 +127,8 @@ impl<'a> VirtualMachine<'a> {
 
                         return InterpretResult::OK;
                     }
-                    _ => InterpretResult::CompilerError,
+
+                    _ => InterpretResult::RuntimeError,
                 };
             }
         }
