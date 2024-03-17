@@ -46,15 +46,19 @@ impl<'a> VirtualMachine<'a> {
         #[cfg(feature = "debug_trace_execution")]
         println!("\n==== VM Logging ====");
 
+        let mut offset;
+        let mut text: String;
+
         loop {
             // prints each instruction right before executing it.
             #[cfg(feature = "debug_trace_execution")]
             {
                 for value in &self.stack {
-                    println!("[{}]", value);
+                    println!("STACK [{}]", value);
                 }
 
-                disassemble_instruction(&self.chunk, self.ip);
+                (text, offset) = disassemble_instruction(&self.chunk, self.ip);
+                println!("{:04} {}", offset, text);
             }
 
             let instruction: u8 = self.advance_ip(1);
@@ -62,8 +66,6 @@ impl<'a> VirtualMachine<'a> {
                 return match operation {
                     OpCode::Constant => {
                         let constant: Value = self.chunk.constants[self.advance_ip(1) as usize];
-                        println!("CONSTANT VALUE {:?}", constant);
-
                         self.stack.push(constant);
 
                         continue;
