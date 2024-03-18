@@ -4,8 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["debug_trace_execution"]
+default = ["debug_trace_execution", "debug_trace_lex_execution"]
 debug_trace_execution = []
+debug_trace_lex_execution = []
 
 [dependencies]
 macros = { path = "../utils" }

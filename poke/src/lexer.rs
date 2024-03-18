@@ -1,7 +1,7 @@
+// LINK - https://github.com/WuBingzheng/build-lua-in-rust/blob/main/listing/ch09.closure/src/lex.rs
+
 use core::panic;
 use std::{
-    error::Error,
-    fs::File,
     io::{Bytes, Read},
     iter::Peekable,
     mem,
@@ -66,7 +66,7 @@ pub enum Token {
     SqurL,
     SqurR,
     DoubColon,
-    //      ;        :       ,      .    <>     ...
+    //      ;        :       ,      .    <>     ..
     SemiColon,
     Colon,
     Comma,
@@ -79,7 +79,8 @@ pub enum Token {
     Float,
     String,
 
-    Identifier, Numbers,
+    Identifier,
+    Numbers,
 
     // End of line
     Error,
@@ -88,6 +89,7 @@ pub enum Token {
 pub struct Lexer<R: Read> {
     input: Peekable<Bytes<R>>,
     ahead: Token,
+    pub current_line: i32,
 }
 
 impl<R: Read> Lexer<R> {
@@ -95,14 +97,26 @@ impl<R: Read> Lexer<R> {
         return Lexer {
             input: input.bytes().peekable(),
             ahead: Token::EoS,
+            current_line: 0,
         };
+    }
+    
+    pub fn peek(&mut self) -> &Token {
+        if self.ahead == Token::EoS {
+            self.ahead = self.advance();
+        }
+
+        return &self.ahead;
+    }
+
+    pub fn expect(&mut self, expected_token: Token) {
+        assert_eq!(self.advance(), expected_token);
     }
 
     pub fn advance(&mut self) -> Token {
-        // if token is EoS, it means that there's no token available, so it needs to
-        // fetch the next token from the input stream. Otherwise we set ahead to
-        // EoS effectivly consuming the token that was previusly peeked (in the
-        // match statement).
+        // If ahead is not Token::EoS, it means that the next token is already 
+        // stored in ahead, so it returns that token. Otherwise, it fetches the 
+        // next token from the input stream and returns it.
         if self.ahead != Token::EoS {
             return mem::replace(&mut self.ahead, Token::EoS);
         }
@@ -147,8 +161,8 @@ impl<R: Read> Lexer<R> {
                 Token::Greater,
             ),
 
-            b'.' => todo!(),
-            b'-' => todo!(),
+            b'.' => self.check_ahead(b'.', Token::Dot, Token::Dots),
+            b'-' => self.check_ahead(b'-', Token::Sub, todo!()),
 
             // ANCHOR Strings
             b'\'' | b'"' => todo!(),
@@ -156,9 +170,13 @@ impl<R: Read> Lexer<R> {
             // ANCHOR - Numbers
             b'0'..=b'9' => todo!(),
             b'A'..=b'Z' | b'a'..=b'z' | b'_' => todo!(),
-            
+
             // ANCHOR - Blank spaces
-            b' ' | b'\n' | b'\r' | b'\t' => self.advance(), // Ignore spaces
+            b' ' | b'\r' | b'\t' => self.advance(), // Ignore spaces
+            b'\n' => {
+                self.current_line += 1;
+                return self.advance();
+            }
 
             // ANCHOR - INVALID
             _ => panic!("Unexpected Character: {:?}", byte_char.unwrap()),
@@ -208,4 +226,6 @@ impl<R: Read> Lexer<R> {
 
         return short_option;
     }
+
+    fn check_comment(&mut self) -> T{}
 }

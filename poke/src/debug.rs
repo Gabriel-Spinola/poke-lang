@@ -1,4 +1,7 @@
-use crate::chunk::{Chunk, ByteCode};
+use crate::{
+    chunk::{ByteCode, Chunk},
+    lexer::Lexer,
+};
 
 fn constant_long_instruction(chunk: &Chunk, offset: usize) -> (String, usize) {
     // by combining the three bytes using `|`, we merge thenm into a single
@@ -22,7 +25,7 @@ fn constant_long_instruction(chunk: &Chunk, offset: usize) -> (String, usize) {
 }
 
 fn simple_instruction(operation: &str, offset: usize) -> (String, usize) {
-    return (operation.to_string(), offset + 1 );
+    return (operation.to_string(), offset + 1);
 }
 
 fn constant_instruction(chunk: &Chunk, offset: usize) -> (String, usize) {
@@ -88,5 +91,33 @@ pub fn disassemble_chunk(chunk: &Chunk, name: &str) {
         (text, offset) = disassemble_instruction(chunk, offset);
 
         println!("{:04} {}", offset, text);
+    }
+}
+
+#[cfg(feature = "debug_trace_lex_execution")]
+pub fn disassemble_lexer<R: std::io::Read>(lexer: &mut Lexer<R>, name: &str) {
+    use crate::lexer::Token;
+
+    println!("==== Lexer {:?} Disassemble ====", name);
+    println!("LINE | TOKEN");
+
+    let mut previus_line = lexer.current_line;
+    loop {
+        let token = lexer.advance();
+        if token == Token::EoS {
+            println!("END STREAM");
+            break;
+        }
+
+        match previus_line {
+            // lex line starts from 0.
+            0 => print!("{:04} ", lexer.current_line + 1),
+
+            _ if previus_line == lexer.current_line + 1 => print!("  |  "),
+            _ => print!("{:04} ", lexer.current_line + 1),
+        }
+
+        previus_line = lexer.current_line + 1;
+        println!("{:?}", token);
     }
 }

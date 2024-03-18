@@ -7,7 +7,7 @@ use std::{env, fs::File, io::BufReader};
 
 use chunk::ByteCode;
 use debug::*;
-use lexer::Lexer;
+use lexer::{Lexer, Token};
 use vm::{InterpretResult, VirtualMachine};
 
 use crate::chunk::Chunk;
@@ -21,7 +21,10 @@ fn main() {
     }
 
     let file = File::open(&args[1]).unwrap();
-    let lexer = Lexer::new(BufReader::new(file));
+    let mut lexer = Lexer::new(BufReader::new(file));
+
+    #[cfg(feature = "debug_trace_lex_execution")]
+    disassemble_lexer(&mut lexer, "operators");
 
     run_vm();
 }
@@ -53,9 +56,7 @@ fn run_vm() {
     chunk.write_chunk(ByteCode::Return as u8, 123);
 
     #[cfg(feature = "debug_trace_execution")]
-    {
-        disassemble_chunk(&chunk, "test chunk");
-    }
+    disassemble_chunk(&chunk, "test chunk");
 
     let mut vm = VirtualMachine::new(&chunk);
     let result = vm.run_interpreter();
