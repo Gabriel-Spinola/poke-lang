@@ -7,7 +7,7 @@ use std::{
     mem,
 };
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     // Keywords
     And,
@@ -20,7 +20,6 @@ pub enum Token {
     False,
     True,
     For,
-    Goto,
     In,
     Function,
     Mut,
@@ -32,6 +31,7 @@ pub enum Token {
     Return,
     Until,
     Require,
+    Break,
 
     // Operations
     //   +     -   *    /    %    ^    #
@@ -44,7 +44,6 @@ pub enum Token {
     Len,
     //    &       ~       |       <<      >>     //
     BitAnd,
-    BitXor,
     BitOr,
     BitNot,
     ShiftL,
@@ -73,13 +72,17 @@ pub enum Token {
     Dot,
     Concat,
     Dots,
+    Arrow,
 
     // Data types
     Int,
     Float,
     String,
+    Bool,
+    Byte,
 
     Identifier,
+    Name(String),
     Numbers,
 
     // End of line
@@ -100,7 +103,7 @@ impl<R: Read> Lexer<R> {
             current_line: 0,
         };
     }
-    
+
     pub fn peek(&mut self) -> &Token {
         if self.ahead == Token::EoS {
             self.ahead = self.advance();
@@ -114,8 +117,8 @@ impl<R: Read> Lexer<R> {
     }
 
     pub fn advance(&mut self) -> Token {
-        // If ahead is not Token::EoS, it means that the next token is already 
-        // stored in ahead, so it returns that token. Otherwise, it fetches the 
+        // If ahead is not Token::EoS, it means that the next token is already
+        // stored in ahead, so it returns that token. Otherwise, it fetches the
         // next token from the input stream and returns it.
         if self.ahead != Token::EoS {
             return mem::replace(&mut self.ahead, Token::EoS);
@@ -134,7 +137,7 @@ impl<R: Read> Lexer<R> {
             b'^' => Token::Pow,
             b'#' => Token::Len,
             b'&' => Token::BitAnd,
-            b'|' => Token::BitXor,
+            b'|' => Token::BitOr,
             b'(' => Token::ParL,
             b')' => Token::ParR,
             b'{' => Token::CurlyL,
@@ -161,15 +164,17 @@ impl<R: Read> Lexer<R> {
                 Token::Greater,
             ),
 
-            b'.' => self.check_ahead(b'.', Token::Dot, Token::Dots),
-            b'-' => self.check_ahead(b'-', Token::Sub, todo!()),
+            b'.' => self.check_ahead(b'.', Token::Dot, Token::Dots), // TODO - This should be complex ahead for considering decimal numbers
+            b'-' => {
+                self.check_complex_ahead(vec![b'-', b'>'], Token::Sub, Lexer::read_comment_or_arrow)
+            }
 
             // ANCHOR Strings
-            b'\'' | b'"' => todo!(),
+            b'\'' | b'"' => todo!(), // TODO -
 
             // ANCHOR - Numbers
-            b'0'..=b'9' => todo!(),
-            b'A'..=b'Z' | b'a'..=b'z' | b'_' => todo!(),
+            b'0'..=b'9' => todo!(), // TODO -
+            b'A'..=b'Z' | b'a'..=b'z' | b'_' => self.read_identifier_or_name(byte_char.unwrap()),
 
             // ANCHOR - Blank spaces
             b' ' | b'\r' | b'\t' => self.advance(), // Ignore spaces
@@ -200,6 +205,75 @@ impl<R: Read> Lexer<R> {
         };
     }
 
+    fn read_comment_or_arrow(&mut self) -> Token {
+        let next_byte = self.next_byte_char();
+        if next_byte.is_none() {
+            return self.advance();
+        }
+
+        if next_byte.unwrap() == b'>' {
+            return Token::Arrow;
+        }
+
+        while let Some(byte_char) = self.next_byte_char() {
+            if byte_char == b'\n' {
+                self.current_line += 1;
+
+                break;
+            }
+        }
+
+        return self.advance();
+    }
+
+    fn read_identifier_or_name(&mut self, byte_char: u8) -> Token {
+        let mut name = String::new();
+        name.push(byte_char as char);
+
+        loop {
+            let character = self.peek_byte_char() as char;
+
+            if !(character.is_alphanumeric() || character == '_') {
+                break;
+            }
+
+            name.push(character);
+            self.next_byte_char();
+        }
+
+        // TODO - optimize by hash
+        return match &name as &str { 
+            "int" => Token::Int,
+            "float" => Token::Float,
+            "string" => Token::String,
+            "bool" => Token::Bool,
+
+            "mut" => Token::Mut,
+            "require" => Token::Require,
+            "and" => Token::And,
+            "break" => Token::Break,
+            "do" => Token::Do,
+            "else" => Token::Else,
+            "elseif" => Token::ElseIf,
+            "end" => Token::End,
+            "false" => Token::False,
+            "for" => Token::For,
+            "function" => Token::Function,
+            "if" => Token::If,
+            "in" => Token::In,
+            "nil" => Token::Nil,
+            "not" => Token::Not,
+            "or" => Token::Or,
+            "repeat" => Token::Repeat,
+            "return" => Token::Return,
+            "then" => Token::Then,
+            "true" => Token::True,
+            "until" => Token::Until,
+            "while" => Token::While,
+            _ => Token::Name(name),
+        };
+    }
+
     fn check_ahead(&mut self, ahead_char: u8, short_option: Token, long_option: Token) -> Token {
         if self.peek_byte_char() == ahead_char {
             self.next_byte_char();
@@ -227,5 +301,18 @@ impl<R: Read> Lexer<R> {
         return short_option;
     }
 
-    fn check_comment(&mut self) -> T{}
+    fn check_complex_ahead(
+        &mut self,
+        ahead_chars: Vec<u8>,
+        short_option: Token,
+        complex_token_reader: fn(&mut Lexer<R>) -> Token,
+    ) -> Token {
+        for i in 0..ahead_chars.len() {
+            if self.peek_byte_char() == ahead_chars[i] {
+                return complex_token_reader(self);
+            }
+        }
+
+        return short_option;
+    }
 }

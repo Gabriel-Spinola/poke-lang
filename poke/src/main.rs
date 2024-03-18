@@ -26,7 +26,7 @@ fn main() {
     #[cfg(feature = "debug_trace_lex_execution")]
     disassemble_lexer(&mut lexer, "operators");
 
-    run_vm();
+    // run_vm();
 }
 
 fn run_vm() {

@@ -1,0 +1,39 @@
+-- Testing operator and comments (like this one (:)
+- + * % ^ # & | ( ) { } [ ] ; ,
+--
+: ::
+/ //
+= ==
+~ ~= --
+<= << <>
+> >= >> -- -- 
+-> 
+
+
+int
+float
+string
+bool
+mut
+require
+and
+break
+do
+else
+elseif
+end
+false
+for
+function
+goto
+if
+in
+nil
+not
+or
+repeat
+return
+then
+true
+until
+while
