@@ -38,7 +38,7 @@ impl<'a> VirtualMachine<'a> {
     }
 
     fn advance_ip(&mut self, offset: usize) -> u8 {
-        let val = self.peek_current_instruction().clone();
+        let val = *self.peek_current_instruction();
         self.ip += offset;
 
         val
@@ -71,7 +71,7 @@ impl<'a> VirtualMachine<'a> {
                 }
 
                 println!("-");
-                (text, offset) = disassemble_instruction(&self.chunk, self.ip);
+                (text, offset) = disassemble_instruction(self.chunk, self.ip);
                 println!("{:04} {}", offset, text);
             }
 

@@ -10,6 +10,10 @@ use std::{
     mem,
 };
 
+#[cfg(test)]
+#[path = "./tests.rs"]
+mod tests;
+
 pub struct Lexer<R: Read> {
     input: Peekable<Bytes<R>>,
     ahead: Token,

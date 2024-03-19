@@ -47,10 +47,9 @@ fn constant_instruction(chunk: &Chunk, offset: usize) -> (String, usize) {
 pub fn disassemble_instruction(chunk: &Chunk, offset: usize) -> (String, usize) {
     // Print lines info
     let instruction = chunk.code[offset];
-    let line = chunk.get_line(&offset).expect(&format!(
-        "line not found for given instruction: {:04}",
-        instruction
-    ));
+    let line = chunk
+        .get_line(&offset)
+        .unwrap_or_else(|| panic!("line not found for given instruction: {:04}", instruction,));
 
     if (offset > 0) && (line == chunk.get_line(&(offset - 1)).unwrap()) {
         print!("  |  ");
@@ -115,6 +114,5 @@ pub fn disassemble_lexer<R: std::io::Read>(lexer: &mut Lexer<R>, name: &str) {
         }
 
         previus_line = lexer.current_line + 1;
-        println!("{:?}", token);
     }
 }

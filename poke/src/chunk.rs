@@ -89,7 +89,7 @@ impl Chunk {
     fn write_line(&mut self, new_line: i32, instruction_index: usize) {
         self.lines
             .entry(new_line)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(instruction_index);
     }
 
@@ -205,7 +205,7 @@ mod tests {
 
         // Test values
         assert_eq!(chunk.get_line(&0).unwrap(), &123); // test for OP_RETURN
-        assert_eq!(chunk.get_line(&(1 * const_intruction_size)).unwrap(), &123);
+        assert_eq!(chunk.get_line(&const_intruction_size).unwrap(), &123);
         assert_eq!(chunk.get_line(&(2 * const_intruction_size)).unwrap(), &123);
         assert_eq!(chunk.get_line(&(3 * const_intruction_size)).unwrap(), &123);
         assert_eq!(chunk.get_line(&(4 * const_intruction_size)).unwrap(), &128);
