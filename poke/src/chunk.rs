@@ -1,7 +1,7 @@
 // LINK - https://craftinginterpreters.com/chunks-of-bytecode.html
 
-use std::{collections::HashMap, fmt};
 use macros::AllVariants;
+use std::{collections::HashMap, fmt};
 
 // REVIEW - Consider using variant parameters
 #[repr(u8)]
@@ -58,25 +58,29 @@ pub struct Chunk {
 
 impl Chunk {
     pub fn new() -> Self {
-        return Chunk {
+        Chunk {
             capacity: 0,
             count: 0,
 
             code: Vec::new(),
             constants: Vec::new(),
             lines: HashMap::new(),
-        };
+        }
     }
 
     /// Grows by a factor of two
     fn grow_capacity(capacity: i32) -> i32 {
-        return if capacity < 8 { 8 } else { capacity * 2 };
+        if capacity < 8 {
+            return 8;
+        }
+
+        capacity * 2
     }
 
     fn add_constant(&mut self, constant: Value) -> usize {
         self.constants.push(constant);
 
-        return self.constants.len() - 1;
+        self.constants.len() - 1
     }
 
     /// Associates the provided instruction index with the given line number
@@ -124,7 +128,7 @@ impl Chunk {
             }
         }
 
-        return None;
+        None
     }
 }
 

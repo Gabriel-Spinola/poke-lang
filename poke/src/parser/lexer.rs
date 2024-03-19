@@ -18,11 +18,11 @@ pub struct Lexer<R: Read> {
 
 impl<R: Read> Lexer<R> {
     pub fn new(input: R) -> Self {
-        return Lexer {
+        Lexer {
             input: input.bytes().peekable(),
             ahead: Token::EoS,
             current_line: 0,
-        };
+        }
     }
 
     pub fn peek(&mut self) -> &Token {
@@ -30,7 +30,7 @@ impl<R: Read> Lexer<R> {
             self.ahead = self.advance();
         }
 
-        return &self.ahead;
+        &self.ahead
     }
 
     pub fn expect(&mut self, expected_token: Token) {
@@ -50,7 +50,7 @@ impl<R: Read> Lexer<R> {
             return Token::EoS;
         }
 
-        return match byte_char.unwrap() {
+        match byte_char.unwrap() {
             // ANCHOR - Symbols
             b'+' => Token::Add,
             b'*' => Token::Mul,
@@ -99,29 +99,30 @@ impl<R: Read> Lexer<R> {
             b' ' | b'\r' | b'\t' => self.advance(), // Ignore spaces
             b'\n' => {
                 self.current_line += 1;
-                return self.advance();
+
+                self.advance()
             }
 
             // ANCHOR - INVALID
             _ => panic!("Unexpected Character: {:?}", byte_char.unwrap()),
-        };
+        }
     }
 
     /// Advances the interator and return the next character from input stream (as byte)
     fn next_byte_char(&mut self) -> Option<u8> {
-        return self.input.next().map(|byte_result| {
-            return byte_result.unwrap_or_else(|error| {
+        self.input.next().map(|byte_result| {
+            byte_result.unwrap_or_else(|error| {
                 panic!("(lexer) failed to iterate through input stream. {}", error)
-            });
-        });
+            })
+        })
     }
 
     fn peek_byte_char(&mut self) -> u8 {
-        return match self.input.peek() {
+        match self.input.peek() {
             Some(Ok(byte_char)) => *byte_char,
             Some(_) => panic!("(lexer) failed to peek error"),
             None => b'\0',
-        };
+        }
     }
 
     fn lex_string(&mut self, byte_char: u8) -> Token {
@@ -156,7 +157,7 @@ impl<R: Read> Lexer<R> {
             }
         }
 
-        return self.lex_decimals();
+        self.lex_decimals()
     }
 
     fn lex_decimals(&mut self) -> Token {
@@ -186,7 +187,7 @@ impl<R: Read> Lexer<R> {
             }
         }
 
-        return self.advance();
+        self.advance()
     }
 
     fn lex_identifier_or_name(&mut self, byte_char: u8) -> Token {
@@ -205,7 +206,7 @@ impl<R: Read> Lexer<R> {
         }
 
         // TODO - optimize by hash
-        return match &name as &str {
+        match &name as &str {
             "mut" => Token::Mut,
             "require" => Token::Require,
             "and" => Token::And,
@@ -229,7 +230,7 @@ impl<R: Read> Lexer<R> {
             "until" => Token::Until,
             "while" => Token::While,
             _ => Token::Identifier(name),
-        };
+        }
     }
 
     fn check_ahead(&mut self, ahead_char: u8, short_option: Token, long_option: Token) -> Token {
@@ -239,7 +240,7 @@ impl<R: Read> Lexer<R> {
             return long_option;
         }
 
-        return short_option;
+        short_option
     }
 
     fn check_ahead_multi_option(
@@ -256,7 +257,7 @@ impl<R: Read> Lexer<R> {
             }
         }
 
-        return short_option;
+        short_option
     }
 
     fn check_complex_ahead(
@@ -271,6 +272,6 @@ impl<R: Read> Lexer<R> {
             }
         }
 
-        return short_option;
+        short_option
     }
 }

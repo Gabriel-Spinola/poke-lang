@@ -23,26 +23,25 @@ pub struct VirtualMachine<'a> {
 
 impl<'a> VirtualMachine<'a> {
     pub fn new(chunk: &'a Chunk) -> Self {
-        return VirtualMachine {
+        VirtualMachine {
             chunk,
             ip: 0,
             stack: Vec::new(),
-        };
+        }
     }
 
     fn peek_current_instruction(&self) -> &u8 {
-        return self
-            .chunk
+        self.chunk
             .code
             .get(self.ip)
-            .expect("Failed to peek into chunk instructions");
+            .expect("Failed to peek into chunk instructions")
     }
 
     fn advance_ip(&mut self, offset: usize) -> u8 {
         let val = self.peek_current_instruction().clone();
         self.ip += offset;
 
-        return val;
+        val
     }
 
     fn binary_op(&mut self, op: fn(Value, Value) -> Value) -> Option<InterpretResult> {
@@ -52,7 +51,7 @@ impl<'a> VirtualMachine<'a> {
 
         self.stack.push(op_result);
 
-        return Some(InterpretResult::OK);
+        Some(InterpretResult::OK)
     }
 
     // TODO - Make return Result with custom interpret errors
