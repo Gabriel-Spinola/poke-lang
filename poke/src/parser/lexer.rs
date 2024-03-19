@@ -1,5 +1,8 @@
+// Code I'm taking as reference (stealing)
 // LINK - https://github.com/WuBingzheng/build-lua-in-rust/blob/main/listing/ch09.closure/src/lex.rs
+// LINK - https://github.com/gleam-lang/gleam/blob/main/compiler-core/src/parse/
 
+use crate::parser::tokens::Token;
 use core::panic;
 use std::{
     io::{Bytes, Read},
@@ -7,88 +10,6 @@ use std::{
     mem,
 };
 
-#[derive(Debug, PartialEq, Clone)]
-pub enum Token {
-    // Keywords
-    And,
-    Do,
-    Then,
-    If,
-    Else,
-    ElseIf,
-    End,
-    False,
-    True,
-    For,
-    In,
-    Function,
-    Mut,
-    Nil,
-    Not,
-    Or,
-    While,
-    Repeat,
-    Return,
-    Until,
-    Require,
-    Break,
-
-    // Operations
-    //   +     -   *    /    %    ^    #
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Mod,
-    Pow,
-    Len,
-    //    &       ~       |       <<      >>     //
-    BitAnd,
-    BitOr,
-    BitNot,
-    ShiftL,
-    ShiftR,
-    Idiv,
-    //   ==       ~=     <=      >=      <       >        =
-    Equal,
-    NotEq,
-    LesEq,
-    GreEq,
-    Less,
-    Greater,
-    Assign,
-    //    (       )       {       }       [       ]       ::
-    ParL,
-    ParR,
-    CurlyL,
-    CurlyR,
-    SqurL,
-    SqurR,
-    DoubColon,
-    //      ;        :       ,      .    <>     ..
-    SemiColon,
-    Colon,
-    Comma,
-    Dot,
-    Concat,
-    Dots,
-    Arrow,
-
-    // Data types
-    Int,
-    Float,
-    String,
-    Bool,
-    Byte,
-
-    Identifier,
-    Name(String),
-    Numbers,
-
-    // End of line
-    Error,
-    EoS,
-}
 pub struct Lexer<R: Read> {
     input: Peekable<Bytes<R>>,
     ahead: Token,
@@ -165,16 +86,14 @@ impl<R: Read> Lexer<R> {
             ),
 
             b'.' => self.check_ahead(b'.', Token::Dot, Token::Dots), // TODO - This should be complex ahead for considering decimal numbers
-            b'-' => {
-                self.check_complex_ahead(vec![b'-', b'>'], Token::Sub, Lexer::read_comment_or_arrow)
-            }
+            b'-' => self.check_complex_ahead(vec![b'-', b'>'], Token::Sub, Lexer::lex_dash_symbol),
 
             // ANCHOR Strings
             b'\'' | b'"' => todo!(), // TODO -
 
             // ANCHOR - Numbers
             b'0'..=b'9' => todo!(), // TODO -
-            b'A'..=b'Z' | b'a'..=b'z' | b'_' => self.read_identifier_or_name(byte_char.unwrap()),
+            b'A'..=b'Z' | b'a'..=b'z' | b'_' => self.lex_identifier_or_name(byte_char.unwrap()),
 
             // ANCHOR - Blank spaces
             b' ' | b'\r' | b'\t' => self.advance(), // Ignore spaces
@@ -205,7 +124,51 @@ impl<R: Read> Lexer<R> {
         };
     }
 
-    fn read_comment_or_arrow(&mut self) -> Token {
+    fn lex_string(&mut self, byte_char: u8) -> Token {
+        todo!()
+    }
+
+    fn lex_number(&mut self, byte_char: u8) -> Token {
+        let next_byte = self.peek_byte_char();
+
+        if byte_char == b'0' {
+            // Hex
+            if next_byte == b'x' || next_byte == b'X' {
+                let _ = self.next_byte_char();
+                let _ = self.next_byte_char();
+
+                return self.lex_number_radix(16, "0x");
+            }
+
+            // Octal
+            if next_byte == b'o' || next_byte == b'O' {
+                let _ = self.next_byte_char();
+                let _ = self.next_byte_char();
+
+                return self.lex_number_radix(8, "0o");
+            }
+
+            if next_byte == b'b' || next_byte == b'B' {
+                let _ = self.next_byte_char();
+                let _ = self.next_byte_char();
+
+                return self.lex_number_radix(2, "0b");
+            }
+        }
+
+        return self.lex_decimals();
+    }
+
+    fn lex_decimals(&mut self) -> Token {
+        todo!()
+    }
+
+    // Lex a Hex/Octal/Binary number without a decimal point.
+    fn lex_number_radix(&mut self, radix: u32, prefix: &str) -> Token {
+        todo!()
+    }
+
+    fn lex_dash_symbol(&mut self) -> Token {
         let next_byte = self.next_byte_char();
         if next_byte.is_none() {
             return self.advance();
@@ -226,7 +189,7 @@ impl<R: Read> Lexer<R> {
         return self.advance();
     }
 
-    fn read_identifier_or_name(&mut self, byte_char: u8) -> Token {
+    fn lex_identifier_or_name(&mut self, byte_char: u8) -> Token {
         let mut name = String::new();
         name.push(byte_char as char);
 
@@ -238,16 +201,11 @@ impl<R: Read> Lexer<R> {
             }
 
             name.push(character);
-            self.next_byte_char();
+            let _ = self.next_byte_char();
         }
 
         // TODO - optimize by hash
-        return match &name as &str { 
-            "int" => Token::Int,
-            "float" => Token::Float,
-            "string" => Token::String,
-            "bool" => Token::Bool,
-
+        return match &name as &str {
             "mut" => Token::Mut,
             "require" => Token::Require,
             "and" => Token::And,
@@ -270,13 +228,13 @@ impl<R: Read> Lexer<R> {
             "true" => Token::True,
             "until" => Token::Until,
             "while" => Token::While,
-            _ => Token::Name(name),
+            _ => Token::Identifier(name),
         };
     }
 
     fn check_ahead(&mut self, ahead_char: u8, short_option: Token, long_option: Token) -> Token {
         if self.peek_byte_char() == ahead_char {
-            self.next_byte_char();
+            let _ = self.next_byte_char();
 
             return long_option;
         }
@@ -292,7 +250,7 @@ impl<R: Read> Lexer<R> {
     ) -> Token {
         for i in 0..ahead_chars.len() {
             if self.peek_byte_char() == ahead_chars[i] {
-                self.next_byte_char();
+                let _ = self.next_byte_char();
 
                 return long_options[i].clone();
             }
@@ -307,8 +265,8 @@ impl<R: Read> Lexer<R> {
         short_option: Token,
         complex_token_reader: fn(&mut Lexer<R>) -> Token,
     ) -> Token {
-        for i in 0..ahead_chars.len() {
-            if self.peek_byte_char() == ahead_chars[i] {
+        for ahead_char in ahead_chars {
+            if self.peek_byte_char() == ahead_char {
                 return complex_token_reader(self);
             }
         }

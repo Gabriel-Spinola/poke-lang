@@ -1,7 +1,6 @@
-use crate::{
-    chunk::{ByteCode, Chunk},
-    lexer::Lexer,
-};
+use crate::chunk::{ByteCode, Chunk};
+use crate::parser::lexer::Lexer;
+use crate::parser::tokens::Token;
 
 fn constant_long_instruction(chunk: &Chunk, offset: usize) -> (String, usize) {
     // by combining the three bytes using `|`, we merge thenm into a single
@@ -96,8 +95,6 @@ pub fn disassemble_chunk(chunk: &Chunk, name: &str) {
 
 #[cfg(feature = "debug_trace_lex_execution")]
 pub fn disassemble_lexer<R: std::io::Read>(lexer: &mut Lexer<R>, name: &str) {
-    use crate::lexer::Token;
-
     println!("==== Lexer {:?} Disassemble ====", name);
     println!("LINE | TOKEN");
 

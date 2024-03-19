@@ -1,13 +1,13 @@
 mod chunk;
 mod debug;
-mod lexer;
+mod parser;
 mod value;
 mod vm;
 use std::{env, fs::File, io::BufReader};
 
 use chunk::ByteCode;
 use debug::*;
-use lexer::{Lexer, Token};
+use parser::lexer::Lexer;
 use vm::{InterpretResult, VirtualMachine};
 
 use crate::chunk::Chunk;

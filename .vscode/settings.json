@@ -1,11 +1,5 @@
 {
-    "files.associations": {
-        ".sequelizerc": "javascript",
-        ".stylelintrc": "json",
-        ".prettierrc": "json",
-        "*.jsn": "hlsl",
-        "memory.h": "c",
-        "common.h": "c",
-        "vector": "cpp"
-    }
+    "rust-analyzer.linkedProjects": [
+        ".\\poke\\Cargo.toml"
+    ]
 }
