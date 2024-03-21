@@ -90,11 +90,12 @@ impl<R: Read> Lexer<R> {
                 Token::Greater,
             ),
 
+            // ANCHOR Complex symbols
             b'.' => self.lex_number_or_dots(),
             b'-' => self.check_complex_ahead(vec![b'-', b'>'], Token::Sub, Lexer::lex_dash_symbol),
 
             // ANCHOR Strings
-            b'\'' | b'"' => self.lex_string(byte_char.unwrap()), // TODO -
+            b'\'' | b'"' => self.lex_string(byte_char.unwrap()),
 
             // ANCHOR - Numbers
             b'0'..=b'9' => self.lex_number(byte_char.unwrap()),
@@ -132,8 +133,8 @@ impl<R: Read> Lexer<R> {
         self.advance()
     }
 
+    // TODO - add string interpolation
     fn lex_string(&mut self, quote_character: u8) -> Token {
-        // let _ = self.next_byte_char(); // Skip first quote
         let mut buffer = String::new();
 
         loop {
