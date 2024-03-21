@@ -14,6 +14,8 @@ use std::{
 #[path = "./tests.rs"]
 mod tests;
 
+// TODO - Implement lexical errors
+// LINK - https://github.com/gleam-lang/gleam/blob/main/compiler-core/src/parse/lexer.rs#L19
 pub struct Lexer<R: Read> {
     input: Peekable<Bytes<R>>,
     ahead: Token,

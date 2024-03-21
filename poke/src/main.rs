@@ -3,14 +3,16 @@ mod debug;
 mod parser;
 mod value;
 mod vm;
-use std::{env, fs::File, io::BufReader};
-
+use crate::chunk::Chunk;
 use chunk::ByteCode;
-use debug::*;
 use parser::lexer::Lexer;
+use std::{env, fs::File, io::BufReader};
 use vm::{InterpretResult, VirtualMachine};
 
-use crate::chunk::Chunk;
+#[cfg(feature = "debug_trace_execution")]
+use debug::disassemble_chunk;
+#[cfg(feature = "debug_trace_lex_execution")]
+use debug::disassemble_lexer;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -26,7 +28,7 @@ fn main() {
     #[cfg(feature = "debug_trace_lex_execution")]
     disassemble_lexer(&mut lexer, "operators");
 
-    // run_vm();
+    run_vm();
 }
 
 fn run_vm() {

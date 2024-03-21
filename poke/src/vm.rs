@@ -1,14 +1,14 @@
-use crate::{
-    chunk::{ByteCode, Chunk, Value},
-    disassemble_instruction,
-};
+use crate::chunk::{ByteCode, Chunk, Value};
+
+#[cfg(feature = "debug_trace_execution")]
+use crate::debug::disassemble_instruction;
 
 use std::ops;
 
 #[derive(PartialEq)]
 pub enum InterpretResult {
     OK,
-    CompilerError,
+    _CompilerError,
     RuntimeError,
 }
 
@@ -59,7 +59,7 @@ impl<'a> VirtualMachine<'a> {
         #[cfg(feature = "debug_trace_execution")]
         println!("\n==== Stack Trace ====");
 
-        let mut offset;
+        let mut offset: usize;
         let mut text: String;
 
         loop {
