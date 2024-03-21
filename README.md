@@ -1,8 +1,11 @@
-# poke-lang
+# Poke Lang
 
-References: 
-https://craftinginterpreters.com/chunks-of-bytecode.html
-https://wubingzheng.github.io/build-lua-in-rust/en/ch01-00.hello_world.html
-https://github.com/WuBingzheng/build-lua-in-rust
+poke-lang is a bytecode interpreter inspired by Lua, Gleam, and the "Crafting Interpreters" book. It is designed to resemble a statically typed Lua and serve as a scripting language for handling small tasks.
 
-Using bytecode
+## References
+- [Crafting Interpreters](https://craftinginterpreters.com/chunks-of-bytecode.html)
+- [Building Lua in Rust](https://github.com/WuBingzheng/build-lua-in-rust)
+- [Gleam Compiler Core](https://github.com/gleam-lang/gleam/blob/main/compiler-core/)
+
+
+The project is designed to be used for interpreting bytecode and scripting small tasks. More details on usage and features can be found in the codebase.
