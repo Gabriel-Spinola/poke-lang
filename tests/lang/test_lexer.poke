@@ -7,7 +7,7 @@
 ~ ~= --
 <= << <>
 > >= >> -- -- 
--> 
+-> . .. 
 
 -- Testing keywords
 int       float   string  bool    mut    require  and
@@ -15,3 +15,25 @@ break     do      else    elseif  end    false    for
 function  goto    if      in      nil    not      or 
 repeat    return  then    true    until  while    Teste
 
+-- Numbers
+10 2 3 4 5
+
+0.1 2.5 6.8
+5.1e+8
+
+.2 .468e2 .6e-28
+
+true false
+
+-- Strings
+"sex123" "hi" 'simple' 'string'
+"\n" '\t'
+'\a' '\b'
+"\f" 
+"\v" 
+"\t" 
+"\\" 
+"\"" 
+"\'" 
+"\x41" 
+"\0" 

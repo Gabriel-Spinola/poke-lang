@@ -49,7 +49,7 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize) -> (String, usize) 
     let instruction = chunk.code[offset];
     let line = chunk
         .get_line(&offset)
-        .unwrap_or_else(|| panic!("line not found for given instruction: {:04}", instruction,));
+        .unwrap_or_else(|| panic!("line not found for given instruction: {:04}", instruction));
 
     if (offset > 0) && (line == chunk.get_line(&(offset - 1)).unwrap()) {
         print!("  |  ");
@@ -114,5 +114,6 @@ pub fn disassemble_lexer<R: std::io::Read>(lexer: &mut Lexer<R>, name: &str) {
         }
 
         previus_line = lexer.current_line + 1;
+        println!("{:?}", token);
     }
 }

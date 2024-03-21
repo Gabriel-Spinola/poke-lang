@@ -9,8 +9,6 @@ pub enum Token {
     Else,
     ElseIf,
     End,
-    False,
-    True,
     For,
     In,
     Function,
@@ -78,14 +76,13 @@ pub enum Token {
     Byte { value: u8 },
 
     Identifier(String),
-    Numbers,
 
     // End of line
     EoS,
 }
 
 #[cfg(test)]
-pub const TOKENS_MOCK: [&Token; 54] = [
+pub const TOKENS_MOCK: [&Token; 52] = [
     // Testing operator and comments
     &Token::Sub,
     &Token::Add,
@@ -128,7 +125,6 @@ pub const TOKENS_MOCK: [&Token; 54] = [
     &Token::Else,
     &Token::ElseIf,
     &Token::End,
-    &Token::False,
     &Token::For,
     &Token::Function,
     &Token::If,
@@ -139,7 +135,6 @@ pub const TOKENS_MOCK: [&Token; 54] = [
     &Token::Repeat,
     &Token::Return,
     &Token::Then,
-    &Token::True,
     &Token::Until,
     &Token::While,
 ];

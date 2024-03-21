@@ -29,7 +29,7 @@ impl<R: Read> Lexer<R> {
         }
     }
 
-    pub fn peek(&mut self) -> &Token {
+    pub fn _peek(&mut self) -> &Token {
         if self.ahead == Token::EoS {
             self.ahead = self.advance();
         }
@@ -89,23 +89,19 @@ impl<R: Read> Lexer<R> {
                 Token::Greater,
             ),
 
-            b'.' => self.check_ahead(b'.', Token::Dot, Token::Dots), // TODO - This should be complex ahead for considering decimal numbers
+            b'.' => self.lex_number_or_dots(),
             b'-' => self.check_complex_ahead(vec![b'-', b'>'], Token::Sub, Lexer::lex_dash_symbol),
 
             // ANCHOR Strings
-            b'\'' | b'"' => todo!(), // TODO -
+            b'\'' | b'"' => self.lex_string(byte_char.unwrap()), // TODO -
 
             // ANCHOR - Numbers
-            b'0'..=b'9' => todo!(), // TODO -
+            b'0'..=b'9' => self.lex_number(byte_char.unwrap()),
             b'A'..=b'Z' | b'a'..=b'z' | b'_' => self.lex_identifier_or_name(byte_char.unwrap()),
 
             // ANCHOR - Blank spaces
             b' ' | b'\r' | b'\t' => self.advance(), // Ignore spaces
-            b'\n' => {
-                self.current_line += 1;
-
-                self.advance()
-            }
+            b'\n' => self.lex_next_line(),
 
             // ANCHOR - INVALID
             _ => panic!("Unexpected Character: {:?}", byte_char.unwrap()),
@@ -129,14 +125,85 @@ impl<R: Read> Lexer<R> {
         }
     }
 
-    fn lex_string(&mut self, byte_char: u8) -> Token {
-        todo!()
+    fn lex_next_line(&mut self) -> Token {
+        self.current_line += 1;
+
+        self.advance()
     }
 
-    fn lex_number(&mut self, byte_char: u8) -> Token {
+    fn lex_string(&mut self, quote_character: u8) -> Token {
+        // let _ = self.next_byte_char(); // Skip first quote
+        let mut buffer = String::new();
+
+        loop {
+            let next_byte = self.next_byte_char();
+
+            match next_byte {
+                Some(b'\\') => buffer.push(self.read_scape() as char),
+                Some(character) if character == quote_character => break,
+                Some(character) => buffer.push(character as char),
+                None => panic!("(lexer) invalid string"),
+            }
+        }
+
+        Token::String { value: buffer }
+    }
+
+    fn read_scape(&mut self) -> u8 {
+        let next_byte = self
+            .next_byte_char()
+            .unwrap_or_else(|| panic!("(lexer) failed to get next byte from string escape"));
+
+        match next_byte {
+            b'a' => 0x07,
+            b'b' => 0x08,
+            b'f' => 0x0c,
+            b'v' => 0x0b,
+            b'n' => b'\n',
+            b'r' => b'\r',
+            b't' => b'\t',
+            b'\\' => b'\\',
+            b'"' => b'"',
+            b'\'' => b'\'',
+            b'x' => self.read_hexadecimal_escape(), // format: \xXX
+            character @ b'0'..=b'9' => self.read_decimal_escape(character), // format: \d[d[d]]
+            _ => panic!("(lexer) invalid string escape"),
+        }
+    }
+
+    fn read_hexadecimal_escape(&mut self) -> u8 {
+        let hex_digit_1 =
+            char::to_digit(self.next_byte_char().expect("invalid format") as char, 16)
+                .expect("correct \\x format: first hex digit");
+        let hex_digit_2 =
+            char::to_digit(self.next_byte_char().expect("invalid format") as char, 16)
+                .expect("correct \\x format: second hex digit");
+
+        (hex_digit_1 * 16 + hex_digit_2) as u8
+    }
+
+    fn read_decimal_escape(&mut self, character: u8) -> u8 {
+        let mut decimal_value = char::to_digit(character as char, 10)
+            .unwrap_or_else(|| panic!("(lexer) failed to convert char to digit: {:?}", character));
+
+        if let Some(digit) = char::to_digit(self.peek_byte_char() as char, 10) {
+            let _ = self.next_byte_char();
+
+            decimal_value = decimal_value * 10 + digit;
+            if let Some(digit) = char::to_digit(self.peek_byte_char() as char, 10) {
+                let _ = self.next_byte_char();
+
+                decimal_value = decimal_value * 10 + digit;
+            }
+        }
+
+        u8::try_from(decimal_value).expect("decimal escape too large")
+    }
+
+    fn lex_number(&mut self, current_byte: u8) -> Token {
         let next_byte = self.peek_byte_char();
 
-        if byte_char == b'0' {
+        if current_byte == b'0' {
             // Hex
             if next_byte == b'x' || next_byte == b'X' {
                 let _ = self.next_byte_char();
@@ -161,16 +228,71 @@ impl<R: Read> Lexer<R> {
             }
         }
 
-        self.lex_decimals()
+        self.lex_decimals_or_integers(current_byte)
     }
 
-    fn lex_decimals(&mut self) -> Token {
-        todo!()
+    fn lex_decimals_or_integers(&mut self, current_byte: u8) -> Token {
+        let mut is_float = current_byte == b'.';
+
+        let mut buffer = String::new();
+        buffer.push(current_byte as char);
+
+        loop {
+            let next_byte = self.peek_byte_char() as char;
+
+            match next_byte {
+                '0'..='9' => buffer.push(next_byte),
+                '.' | 'E' | 'e' | '+' | '-' => {
+                    buffer.push(next_byte);
+
+                    is_float = true;
+                }
+                _ => break,
+            }
+
+            self.next_byte_char();
+        }
+
+        if is_float {
+            let float_value = buffer.parse::<f32>().unwrap_or_else(|error| {
+                panic!(
+                    "(lexer) failed to parse value {:?} to float. {}",
+                    buffer, error
+                )
+            });
+
+            return Token::Float { value: float_value };
+        }
+
+        let int_value = buffer.parse::<i32>().unwrap_or_else(|error| {
+            panic!(
+                "(lexer) failed to parse value {:?} to int. {}",
+                buffer, error
+            )
+        });
+
+        Token::Int { value: int_value }
     }
 
     // Lex a Hex/Octal/Binary number without a decimal point.
-    fn lex_number_radix(&mut self, radix: u32, prefix: &str) -> Token {
-        todo!()
+    fn lex_number_radix(&mut self, _radix: u32, _prefix: &str) -> Token {
+        todo!() // TODO - Implement number radix ref: https://github.com/gleam-lang/gleam/blob/main/compiler-core/src/parse/lexer.rs#L554
+    }
+
+    fn lex_number_or_dots(&mut self) -> Token {
+        let next_byte = self.peek_byte_char();
+
+        if next_byte == b'.' {
+            let _ = self.next_byte_char();
+
+            return Token::Dots;
+        }
+
+        if !next_byte.is_ascii_digit() {
+            return Token::Dot;
+        }
+
+        self.lex_number(b'.')
     }
 
     fn lex_dash_symbol(&mut self) -> Token {
@@ -194,9 +316,9 @@ impl<R: Read> Lexer<R> {
         self.advance()
     }
 
-    fn lex_identifier_or_name(&mut self, byte_char: u8) -> Token {
+    fn lex_identifier_or_name(&mut self, current_byte: u8) -> Token {
         let mut name = String::new();
-        name.push(byte_char as char);
+        name.push(current_byte as char);
 
         loop {
             let character = self.peek_byte_char() as char;
@@ -219,7 +341,6 @@ impl<R: Read> Lexer<R> {
             "else" => Token::Else,
             "elseif" => Token::ElseIf,
             "end" => Token::End,
-            "false" => Token::False,
             "for" => Token::For,
             "function" => Token::Function,
             "if" => Token::If,
@@ -230,7 +351,8 @@ impl<R: Read> Lexer<R> {
             "repeat" => Token::Repeat,
             "return" => Token::Return,
             "then" => Token::Then,
-            "true" => Token::True,
+            "true" => Token::Bool { value: true },
+            "false" => Token::Bool { value: false },
             "until" => Token::Until,
             "while" => Token::While,
             _ => Token::Identifier(name),
