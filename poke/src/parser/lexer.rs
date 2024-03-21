@@ -234,6 +234,7 @@ impl<R: Read> Lexer<R> {
 
     fn lex_decimals_or_integers(&mut self, current_byte: u8) -> Token {
         let mut is_float = current_byte == b'.';
+        let mut is_byte = false;
 
         let mut buffer = String::new();
         buffer.push(current_byte as char);
@@ -248,6 +249,7 @@ impl<R: Read> Lexer<R> {
 
                     is_float = true;
                 }
+                'b' if !is_float && !self.peek_byte_char().is_ascii_digit() => is_byte = true,
                 _ => break,
             }
 
@@ -263,6 +265,17 @@ impl<R: Read> Lexer<R> {
             });
 
             return Token::Float { value: float_value };
+        }
+
+        if is_byte {
+            let byte_value = buffer.parse::<u8>().unwrap_or_else(|error| {
+                panic!(
+                    "(lexer) failed to parse value {:?} to byte. {}",
+                    buffer, error
+                )
+            });
+
+            return Token::Byte { value: byte_value };
         }
 
         let int_value = buffer.parse::<i32>().unwrap_or_else(|error| {

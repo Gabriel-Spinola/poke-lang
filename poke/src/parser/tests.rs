@@ -4,6 +4,7 @@ use crate::parser::tokens::{Token, TOKENS_MOCK};
 
 use super::Lexer;
 
+// TODO - Finish writing this test
 #[test]
 fn test_lexer_tokens() {
     let current_dir = std::env::current_dir().expect("Failed to get current directory");

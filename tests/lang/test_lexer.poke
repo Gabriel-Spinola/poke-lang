@@ -23,6 +23,8 @@ repeat    return  then    true    until  while    Teste
 
 .2 .468e2 .6e-28
 
+2b 45b
+
 true false
 
 -- Strings
