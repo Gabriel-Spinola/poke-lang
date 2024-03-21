@@ -37,6 +37,7 @@ impl<R: Read> Lexer<R> {
         &self.ahead
     }
 
+    #[cfg(test)]
     pub fn expect(&mut self, expected_token: Token) {
         assert_eq!(self.advance(), expected_token);
     }
