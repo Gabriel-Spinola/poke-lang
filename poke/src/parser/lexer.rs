@@ -18,8 +18,7 @@ mod tests;
 
 pub type LexResult = Result<Token, LexicalError>;
 
-// TODO - Implement lexical errors
-// LINK - https://github.com/gleam-lang/gleam/blob/main/compiler-core/src/parse/lexer.rs#L19
+// TODO - Implement all errors
 pub struct Lexer<R: Read> {
     pub current_line: i32,
 
@@ -36,12 +35,12 @@ impl<R: Read> Lexer<R> {
         }
     }
 
-    pub fn _peek(&mut self) -> &Token {
+    pub fn _peek(&mut self) -> Result<&Token, LexicalError> {
         if self.ahead == Token::EoS {
-            self.ahead = self.advance().unwrap(); // FIXME - Remove unwrap
+            self.ahead = self.advance()?;
         }
 
-        &self.ahead
+        Ok(&self.ahead)
     }
 
     #[cfg(test)]
@@ -117,7 +116,13 @@ impl<R: Read> Lexer<R> {
             b'\n' => self.lex_next_line(),
 
             // ANCHOR - INVALID
-            _ => panic!("Unexpected Character: {:?}", byte_char.unwrap() as char),
+            _ => Err(LexicalError {
+                error: LexicalErrorType::UnexpectedToken {
+                    token: byte_char.unwrap() as char,
+                },
+
+                line: self.current_line,
+            }),
         }
     }
 
@@ -159,7 +164,7 @@ impl<R: Read> Lexer<R> {
             }
 
             match next_byte.unwrap() {
-                b'\\' => buffer.push(self.read_scape() as char), // Push escape
+                b'\\' => buffer.push(self.read_scape()? as char), // Push escape
 
                 character if character == quote_character => break, // Close string
                 character => buffer.push(character as char),        // Push character
@@ -169,29 +174,33 @@ impl<R: Read> Lexer<R> {
         Ok(Token::String { value: buffer })
     }
 
-    fn read_scape(&mut self) -> u8 {
+    fn read_scape(&mut self) -> Result<u8, LexicalError> {
         let next_byte = self
             .next_byte_char()
             .unwrap_or_else(|| panic!("(lexer) failed to get next byte from string escape"));
 
         match next_byte {
-            b'a' => 0x07,
-            b'b' => 0x08,
-            b'f' => 0x0c,
-            b'v' => 0x0b,
-            b'n' => b'\n',
-            b'r' => b'\r',
-            b't' => b'\t',
-            b'\\' => b'\\',
-            b'"' => b'"',
-            b'\'' => b'\'',
+            b'a' => Ok(0x07),
+            b'b' => Ok(0x08),
+            b'f' => Ok(0x0c),
+            b'v' => Ok(0x0b),
+            b'n' => Ok(b'\n'),
+            b'r' => Ok(b'\r'),
+            b't' => Ok(b'\t'),
+            b'\\' => Ok(b'\\'),
+            b'"' => Ok(b'"'),
+            b'\'' => Ok(b'\''),
             b'x' => self.read_hexadecimal_escape(), // format: \xXX
             character @ b'0'..=b'9' => self.read_decimal_escape(character), // format: \d[d[d]]
-            _ => panic!("(lexer) invalid string escape"),
+
+            _ => Err(LexicalError {
+                error: LexicalErrorType::BadStringEscape,
+                line: self.current_line,
+            }),
         }
     }
 
-    fn read_hexadecimal_escape(&mut self) -> u8 {
+    fn read_hexadecimal_escape(&mut self) -> Result<u8, LexicalError> {
         let hex_digit_1 =
             char::to_digit(self.next_byte_char().expect("invalid format") as char, 16)
                 .expect("correct \\x format: first hex digit");
@@ -199,10 +208,10 @@ impl<R: Read> Lexer<R> {
             char::to_digit(self.next_byte_char().expect("invalid format") as char, 16)
                 .expect("correct \\x format: second hex digit");
 
-        (hex_digit_1 * 16 + hex_digit_2) as u8
+        Ok((hex_digit_1 * 16 + hex_digit_2) as u8)
     }
 
-    fn read_decimal_escape(&mut self, character: u8) -> u8 {
+    fn read_decimal_escape(&mut self, character: u8) -> Result<u8, LexicalError> {
         let mut decimal_value = char::to_digit(character as char, 10)
             .unwrap_or_else(|| panic!("(lexer) failed to convert char to digit: {:?}", character));
 
@@ -217,7 +226,7 @@ impl<R: Read> Lexer<R> {
             }
         }
 
-        u8::try_from(decimal_value).expect("decimal escape too large")
+        Ok(u8::try_from(decimal_value).expect("decimal escape too large"))
     }
 
     fn lex_number(&mut self, current_byte: u8) -> LexResult {
