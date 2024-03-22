@@ -3,14 +3,10 @@ mod debug;
 mod parser;
 mod value;
 mod vm;
-use crate::chunk::Chunk;
-use chunk::ByteCode;
 use parser::lexer::Lexer;
 use std::{env, fs::File, io::BufReader};
-use vm::{InterpretResult, VirtualMachine};
 
 #[cfg(feature = "debug_trace_execution")]
-use debug::disassemble_chunk;
 #[cfg(feature = "debug_trace_lex_execution")]
 use debug::disassemble_lexer;
 
@@ -27,42 +23,4 @@ fn main() {
 
     #[cfg(feature = "debug_trace_lex_execution")]
     disassemble_lexer(&mut lexer, "operators");
-
-    run_vm();
-}
-
-fn run_vm() {
-    let mut chunk = Chunk::new();
-    chunk.write_constant(1.2, 123);
-    chunk.write_constant(1.5, 123);
-
-    chunk.write_constant(6.2, 128);
-    chunk.write_chunk(ByteCode::Negate as u8, 2);
-
-    chunk.write_constant(1.0, 132);
-    chunk.write_constant(2.0, 132);
-    chunk.write_chunk(ByteCode::Add as u8, 132);
-
-    chunk.write_constant(1.0, 132);
-    chunk.write_constant(2.0, 132);
-    chunk.write_chunk(ByteCode::Subtract as u8, 132);
-
-    chunk.write_constant(1.0, 132);
-    chunk.write_constant(2.0, 132);
-    chunk.write_chunk(ByteCode::Multiply as u8, 132);
-
-    chunk.write_constant(1.0, 132);
-    chunk.write_constant(2.0, 132);
-    chunk.write_chunk(ByteCode::Divide as u8, 132);
-
-    chunk.write_chunk(ByteCode::Return as u8, 123);
-
-    #[cfg(feature = "debug_trace_execution")]
-    disassemble_chunk(&chunk, "test chunk");
-
-    let mut vm = VirtualMachine::new(&chunk);
-    let result = vm.run_interpreter();
-    if result != InterpretResult::OK {
-        println!("VM Failed")
-    }
 }
