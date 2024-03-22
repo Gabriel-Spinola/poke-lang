@@ -3,8 +3,10 @@ mod debug;
 mod parser;
 mod value;
 mod vm;
+use chunk::{ByteCode, Chunk};
 use parser::lexer::Lexer;
 use std::{env, fs::File, io::BufReader};
+use vm::VirtualMachine;
 
 #[cfg(feature = "debug_trace_execution")]
 #[cfg(feature = "debug_trace_lex_execution")]
@@ -23,4 +25,13 @@ fn main() {
 
     #[cfg(feature = "debug_trace_lex_execution")]
     disassemble_lexer(&mut lexer, "operators");
+
+    let mut chunk = Chunk::new();
+    chunk.write_chunk(ByteCode::Return as u8, 0);
+
+    let mut vm = VirtualMachine::new(&chunk);
+    match vm.run_interpreter() {
+        Ok(_) => println!("VM executed succesfully"),
+        Err(error) => panic!("VM failed {:?}", error),
+    };
 }

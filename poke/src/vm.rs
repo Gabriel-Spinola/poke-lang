@@ -58,7 +58,9 @@ impl<'a> VirtualMachine<'a> {
     // TODO - Make return Result with custom interpret errors
     pub fn run_interpreter(&mut self) -> InterpretResult {
         #[cfg(feature = "debug_trace_execution")]
-        println!("\n==== Stack Trace ====");
+        {
+            println!("\n==== Stack Trace ====");
+        }
 
         let mut offset: usize;
         let mut text: String;
