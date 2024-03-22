@@ -5,12 +5,13 @@ use crate::debug::disassemble_instruction;
 
 use std::ops;
 
-#[derive(PartialEq)]
-pub enum InterpretResult {
-    OK,
-    _CompilerError,
+#[derive(Debug)]
+pub enum InterpretError {
+    CompilerError,
     RuntimeError,
 }
+
+pub type InterpretResult = Result<(), InterpretError>;
 
 pub struct VirtualMachine<'a> {
     chunk: &'a Chunk,
@@ -51,13 +52,15 @@ impl<'a> VirtualMachine<'a> {
 
         self.stack.push(op_result);
 
-        Some(InterpretResult::OK)
+        Some(Ok(()))
     }
 
     // TODO - Make return Result with custom interpret errors
     pub fn run_interpreter(&mut self) -> InterpretResult {
         #[cfg(feature = "debug_trace_execution")]
-        println!("\n==== Stack Trace ====");
+        {
+            println!("\n==== Stack Trace ====");
+        }
 
         let mut offset: usize;
         let mut text: String;
@@ -98,26 +101,30 @@ impl<'a> VirtualMachine<'a> {
                 }
 
                 ByteCode::Add => {
-                    self.binary_op(ops::Add::add)
-                        .unwrap_or(InterpretResult::RuntimeError);
+                    let _ = self
+                        .binary_op(ops::Add::add)
+                        .unwrap_or(Err(InterpretError::RuntimeError));
 
                     continue;
                 }
                 ByteCode::Subtract => {
-                    self.binary_op(ops::Sub::sub)
-                        .unwrap_or(InterpretResult::RuntimeError);
+                    let _ = self
+                        .binary_op(ops::Sub::sub)
+                        .unwrap_or(Err(InterpretError::RuntimeError));
 
                     continue;
                 }
                 ByteCode::Multiply => {
-                    self.binary_op(ops::Mul::mul)
-                        .unwrap_or(InterpretResult::RuntimeError);
+                    let _ = self
+                        .binary_op(ops::Mul::mul)
+                        .unwrap_or(Err(InterpretError::RuntimeError));
 
                     continue;
                 }
                 ByteCode::Divide => {
-                    self.binary_op(ops::Div::div)
-                        .unwrap_or(InterpretResult::RuntimeError);
+                    let _ = self
+                        .binary_op(ops::Div::div)
+                        .unwrap_or(Err(InterpretError::RuntimeError));
 
                     continue;
                 }
@@ -128,10 +135,10 @@ impl<'a> VirtualMachine<'a> {
                         println!("Popped from stack: {}", value);
                     }
 
-                    return InterpretResult::OK;
+                    return Ok(());
                 }
 
-                _ => InterpretResult::RuntimeError,
+                _ => Err(InterpretError::CompilerError),
             };
         }
     }

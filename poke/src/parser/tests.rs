@@ -24,7 +24,7 @@ fn test_lexer_tokens() {
         lexer.expect(TOKENS_MOCK[i].clone());
 
         // *
-        let token = lexer.advance();
+        let token = lexer.advance().expect("expected token");
         if token == Token::EoS {
             println!("END STREAM");
 

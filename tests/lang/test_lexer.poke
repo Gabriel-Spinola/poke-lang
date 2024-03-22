@@ -29,6 +29,7 @@ true false
 
 -- Strings
 "sex123" "hi" 'simple' 'string'
+
 "\n" '\t'
 '\a' '\b'
 "\f" 

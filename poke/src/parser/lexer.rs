@@ -10,16 +10,20 @@ use std::{
     mem,
 };
 
+use super::errors::{LexicalError, LexicalErrorType};
+
 #[cfg(test)]
 #[path = "./tests.rs"]
 mod tests;
 
-// TODO - Implement lexical errors
-// LINK - https://github.com/gleam-lang/gleam/blob/main/compiler-core/src/parse/lexer.rs#L19
+pub type LexResult = Result<Token, LexicalError>;
+
+// TODO - Implement all errors
 pub struct Lexer<R: Read> {
+    pub current_line: i32,
+
     input: Peekable<Bytes<R>>,
     ahead: Token,
-    pub current_line: i32,
 }
 
 impl<R: Read> Lexer<R> {
@@ -31,49 +35,53 @@ impl<R: Read> Lexer<R> {
         }
     }
 
-    pub fn _peek(&mut self) -> &Token {
+    pub fn _peek(&mut self) -> Result<&Token, LexicalError> {
         if self.ahead == Token::EoS {
-            self.ahead = self.advance();
+            self.ahead = self.advance()?;
         }
 
-        &self.ahead
+        Ok(&self.ahead)
     }
 
     #[cfg(test)]
     pub fn expect(&mut self, expected_token: Token) {
-        assert_eq!(self.advance(), expected_token);
+        if let Ok(token) = self.advance() {
+            assert_eq!(token, expected_token);
+        }
+
+        panic!("No token found")
     }
 
-    pub fn advance(&mut self) -> Token {
+    pub fn advance(&mut self) -> LexResult {
         // If ahead is not Token::EoS, it means that the next token is already
         // stored in ahead, so it returns that token. Otherwise, it fetches the
         // next token from the input stream and returns it.
         if self.ahead != Token::EoS {
-            return mem::replace(&mut self.ahead, Token::EoS);
+            return Ok(mem::replace(&mut self.ahead, Token::EoS));
         }
 
         let byte_char = self.next_byte_char();
         if byte_char.is_none() {
-            return Token::EoS;
+            return Ok(Token::EoS);
         }
 
         match byte_char.unwrap() {
             // ANCHOR - Symbols
-            b'+' => Token::Add,
-            b'*' => Token::Mul,
-            b'%' => Token::Mod,
-            b'^' => Token::Pow,
-            b'#' => Token::Len,
-            b'&' => Token::BitAnd,
-            b'|' => Token::BitOr,
-            b'(' => Token::ParL,
-            b')' => Token::ParR,
-            b'{' => Token::CurlyL,
-            b'}' => Token::CurlyR,
-            b'[' => Token::SqurL,
-            b']' => Token::SqurR,
-            b';' => Token::SemiColon,
-            b',' => Token::Comma,
+            b'+' => Ok(Token::Add),
+            b'*' => Ok(Token::Mul),
+            b'%' => Ok(Token::Mod),
+            b'^' => Ok(Token::Pow),
+            b'#' => Ok(Token::Len),
+            b'&' => Ok(Token::BitAnd),
+            b'|' => Ok(Token::BitOr),
+            b'(' => Ok(Token::ParL),
+            b')' => Ok(Token::ParR),
+            b'{' => Ok(Token::CurlyL),
+            b'}' => Ok(Token::CurlyR),
+            b'[' => Ok(Token::SqurL),
+            b']' => Ok(Token::SqurR),
+            b';' => Ok(Token::SemiColon),
+            b',' => Ok(Token::Comma),
 
             b':' => self.check_ahead(b':', Token::Colon, Token::DoubColon),
             b'/' => self.check_ahead(b'/', Token::Div, Token::Idiv),
@@ -101,14 +109,20 @@ impl<R: Read> Lexer<R> {
 
             // ANCHOR - Numbers
             b'0'..=b'9' => self.lex_number(byte_char.unwrap()),
-            b'A'..=b'Z' | b'a'..=b'z' | b'_' => self.lex_identifier_or_name(byte_char.unwrap()),
+            b'A'..=b'Z' | b'a'..=b'z' | b'_' => Ok(self.lex_identifier_or_name(byte_char.unwrap())),
 
             // ANCHOR - Blank spaces
             b' ' | b'\r' | b'\t' => self.advance(), // Ignore spaces
             b'\n' => self.lex_next_line(),
 
             // ANCHOR - INVALID
-            _ => panic!("Unexpected Character: {:?}", byte_char.unwrap()),
+            _ => Err(LexicalError {
+                error: LexicalErrorType::UnexpectedToken {
+                    token: byte_char.unwrap() as char,
+                },
+
+                line: self.current_line,
+            }),
         }
     }
 
@@ -129,53 +143,64 @@ impl<R: Read> Lexer<R> {
         }
     }
 
-    fn lex_next_line(&mut self) -> Token {
+    fn lex_next_line(&mut self) -> LexResult {
         self.current_line += 1;
 
         self.advance()
     }
 
     // TODO - add string interpolation
-    fn lex_string(&mut self, quote_character: u8) -> Token {
+    fn lex_string(&mut self, quote_character: u8) -> LexResult {
         let mut buffer = String::new();
 
         loop {
             let next_byte = self.next_byte_char();
 
-            match next_byte {
-                Some(b'\\') => buffer.push(self.read_scape() as char),
-                Some(character) if character == quote_character => break,
-                Some(character) => buffer.push(character as char),
-                None => panic!("(lexer) invalid string"),
+            if next_byte.is_none() {
+                return Err(LexicalError {
+                    error: LexicalErrorType::UnexpectedStringEnd,
+                    line: self.current_line,
+                });
+            }
+
+            match next_byte.unwrap() {
+                b'\\' => buffer.push(self.read_scape()? as char), // Push escape
+
+                character if character == quote_character => break, // Close string
+                character => buffer.push(character as char),        // Push character
             }
         }
 
-        Token::String { value: buffer }
+        Ok(Token::String { value: buffer })
     }
 
-    fn read_scape(&mut self) -> u8 {
+    fn read_scape(&mut self) -> Result<u8, LexicalError> {
         let next_byte = self
             .next_byte_char()
             .unwrap_or_else(|| panic!("(lexer) failed to get next byte from string escape"));
 
         match next_byte {
-            b'a' => 0x07,
-            b'b' => 0x08,
-            b'f' => 0x0c,
-            b'v' => 0x0b,
-            b'n' => b'\n',
-            b'r' => b'\r',
-            b't' => b'\t',
-            b'\\' => b'\\',
-            b'"' => b'"',
-            b'\'' => b'\'',
+            b'a' => Ok(0x07),
+            b'b' => Ok(0x08),
+            b'f' => Ok(0x0c),
+            b'v' => Ok(0x0b),
+            b'n' => Ok(b'\n'),
+            b'r' => Ok(b'\r'),
+            b't' => Ok(b'\t'),
+            b'\\' => Ok(b'\\'),
+            b'"' => Ok(b'"'),
+            b'\'' => Ok(b'\''),
             b'x' => self.read_hexadecimal_escape(), // format: \xXX
             character @ b'0'..=b'9' => self.read_decimal_escape(character), // format: \d[d[d]]
-            _ => panic!("(lexer) invalid string escape"),
+
+            _ => Err(LexicalError {
+                error: LexicalErrorType::BadStringEscape,
+                line: self.current_line,
+            }),
         }
     }
 
-    fn read_hexadecimal_escape(&mut self) -> u8 {
+    fn read_hexadecimal_escape(&mut self) -> Result<u8, LexicalError> {
         let hex_digit_1 =
             char::to_digit(self.next_byte_char().expect("invalid format") as char, 16)
                 .expect("correct \\x format: first hex digit");
@@ -183,10 +208,10 @@ impl<R: Read> Lexer<R> {
             char::to_digit(self.next_byte_char().expect("invalid format") as char, 16)
                 .expect("correct \\x format: second hex digit");
 
-        (hex_digit_1 * 16 + hex_digit_2) as u8
+        Ok((hex_digit_1 * 16 + hex_digit_2) as u8)
     }
 
-    fn read_decimal_escape(&mut self, character: u8) -> u8 {
+    fn read_decimal_escape(&mut self, character: u8) -> Result<u8, LexicalError> {
         let mut decimal_value = char::to_digit(character as char, 10)
             .unwrap_or_else(|| panic!("(lexer) failed to convert char to digit: {:?}", character));
 
@@ -201,10 +226,10 @@ impl<R: Read> Lexer<R> {
             }
         }
 
-        u8::try_from(decimal_value).expect("decimal escape too large")
+        Ok(u8::try_from(decimal_value).expect("decimal escape too large"))
     }
 
-    fn lex_number(&mut self, current_byte: u8) -> Token {
+    fn lex_number(&mut self, current_byte: u8) -> LexResult {
         let next_byte = self.peek_byte_char();
 
         if current_byte == b'0' {
@@ -235,7 +260,7 @@ impl<R: Read> Lexer<R> {
         self.lex_decimals_or_integers(current_byte)
     }
 
-    fn lex_decimals_or_integers(&mut self, current_byte: u8) -> Token {
+    fn lex_decimals_or_integers(&mut self, current_byte: u8) -> LexResult {
         let mut is_float = current_byte == b'.';
         let mut is_byte = false;
 
@@ -267,7 +292,7 @@ impl<R: Read> Lexer<R> {
                 )
             });
 
-            return Token::Float { value: float_value };
+            return Ok(Token::Float { value: float_value });
         }
 
         if is_byte {
@@ -278,7 +303,7 @@ impl<R: Read> Lexer<R> {
                 )
             });
 
-            return Token::Byte { value: byte_value };
+            return Ok(Token::Byte { value: byte_value });
         }
 
         let int_value = buffer.parse::<i32>().unwrap_or_else(|error| {
@@ -288,38 +313,38 @@ impl<R: Read> Lexer<R> {
             )
         });
 
-        Token::Int { value: int_value }
+        Ok(Token::Int { value: int_value })
     }
 
     // Lex a Hex/Octal/Binary number without a decimal point.
-    fn lex_number_radix(&mut self, _radix: u32, _prefix: &str) -> Token {
+    fn lex_number_radix(&mut self, _radix: u32, _prefix: &str) -> LexResult {
         todo!() // TODO - Implement number radix ref: https://github.com/gleam-lang/gleam/blob/main/compiler-core/src/parse/lexer.rs#L554
     }
 
-    fn lex_number_or_dots(&mut self) -> Token {
+    fn lex_number_or_dots(&mut self) -> LexResult {
         let next_byte = self.peek_byte_char();
 
         if next_byte == b'.' {
             let _ = self.next_byte_char();
 
-            return Token::Dots;
+            return Ok(Token::Dots);
         }
 
         if !next_byte.is_ascii_digit() {
-            return Token::Dot;
+            return Ok(Token::Dot);
         }
 
         self.lex_number(b'.')
     }
 
-    fn lex_dash_symbol(&mut self) -> Token {
+    fn lex_dash_symbol(&mut self) -> LexResult {
         let next_byte = self.next_byte_char();
         if next_byte.is_none() {
             return self.advance();
         }
 
         if next_byte.unwrap() == b'>' {
-            return Token::Arrow;
+            return Ok(Token::Arrow);
         }
 
         while let Some(byte_char) = self.next_byte_char() {
@@ -376,14 +401,19 @@ impl<R: Read> Lexer<R> {
         }
     }
 
-    fn check_ahead(&mut self, ahead_char: u8, short_option: Token, long_option: Token) -> Token {
+    fn check_ahead(
+        &mut self,
+        ahead_char: u8,
+        short_option: Token,
+        long_option: Token,
+    ) -> LexResult {
         if self.peek_byte_char() == ahead_char {
             let _ = self.next_byte_char();
 
-            return long_option;
+            return Ok(long_option);
         }
 
-        short_option
+        Ok(short_option)
     }
 
     fn check_ahead_multi_option(
@@ -391,30 +421,30 @@ impl<R: Read> Lexer<R> {
         ahead_chars: Vec<u8>,
         long_options: Vec<Token>,
         short_option: Token,
-    ) -> Token {
+    ) -> LexResult {
         for i in 0..ahead_chars.len() {
             if self.peek_byte_char() == ahead_chars[i] {
                 let _ = self.next_byte_char();
 
-                return long_options[i].clone();
+                return Ok(long_options[i].clone());
             }
         }
 
-        short_option
+        Ok(short_option)
     }
 
     fn check_complex_ahead(
         &mut self,
         ahead_chars: Vec<u8>,
         short_option: Token,
-        complex_token_reader: fn(&mut Lexer<R>) -> Token,
-    ) -> Token {
+        complex_token_reader: fn(&mut Lexer<R>) -> LexResult,
+    ) -> LexResult {
         for ahead_char in ahead_chars {
             if self.peek_byte_char() == ahead_char {
                 return complex_token_reader(self);
             }
         }
 
-        short_option
+        Ok(short_option)
     }
 }

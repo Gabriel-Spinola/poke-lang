@@ -99,7 +99,10 @@ pub fn disassemble_lexer<R: std::io::Read>(lexer: &mut Lexer<R>, name: &str) {
 
     let mut previus_line = lexer.current_line;
     loop {
-        let token = lexer.advance();
+        let token = lexer
+            .advance()
+            .unwrap_or_else(|error| panic!("lexer failed: {:?}", error));
+
         if token == Token::EoS {
             println!("END STREAM");
             break;
