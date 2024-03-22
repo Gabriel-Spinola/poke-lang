@@ -45,14 +45,21 @@ impl fmt::Display for ByteCode {
     }
 }
 
-pub type Value = f64;
+// TODO - Implement value traits for operation
+#[derive(Debug, PartialEq)]
+pub enum ValueType {
+    Float(f64),
+    Int(i32),
+    Byte(u8),
+    Nil,
+}
 
 pub struct Chunk {
     pub count: i32,
     pub capacity: i32,
 
     pub code: Vec<u8>,
-    pub constants: Vec<Value>,
+    pub constants: Vec<ValueType>,
     pub lines: HashMap<i32, Vec<usize>>,
 }
 
@@ -77,7 +84,7 @@ impl Chunk {
         capacity * 2
     }
 
-    fn add_constant(&mut self, constant: Value) -> usize {
+    fn add_constant(&mut self, constant: ValueType) -> usize {
         self.constants.push(constant);
 
         self.constants.len() - 1
@@ -104,7 +111,7 @@ impl Chunk {
         self.count += 1;
     }
 
-    pub fn write_constant(&mut self, constant: Value, line: i32) {
+    pub fn write_constant(&mut self, constant: ValueType, line: i32) {
         let constant_index = self.add_constant(constant);
 
         if constant_index < 256 {
@@ -134,14 +141,14 @@ impl Chunk {
 
 #[cfg(test)]
 mod tests {
-    use crate::{debug::disassemble_chunk, vm::VirtualMachine};
+    use crate::{debug::_disassemble_chunk, vm::VirtualMachine};
 
     use super::*;
 
     #[test]
     fn test_write_constant_small_index() {
         let mut chunk = Chunk::new();
-        let value = 42.0;
+        let value = ValueType::Float(42.0);
         let instructions_count = 2;
 
         chunk.write_constant(value, 1);
@@ -175,15 +182,15 @@ mod tests {
 
         // Write small index constants
         for i in 0..small_const_size {
-            chunk.write_constant(i as Value, 1);
+            chunk.write_constant(ValueType::Int(i), 1);
         }
 
         // Write and test large index constants
         for i in 0..4 {
-            chunk.write_constant(i as Value, 1);
+            chunk.write_constant(ValueType::Int(i as i32), 1);
 
             assert_eq!(
-                chunk.count as usize,
+                chunk.count,
                 (instructions_count / 2 * small_const_size) + ((i + 1) * instructions_count),
                 "Incorrect total count of bytes in the chunk"
             );
@@ -196,11 +203,11 @@ mod tests {
         let const_intruction_size = 2;
 
         chunk.write_chunk(ByteCode::Return as u8, 123);
-        chunk.write_constant(1.2, 123);
-        chunk.write_constant(1.2, 123);
-        chunk.write_constant(1.2, 123);
-        chunk.write_constant(1.2, 128);
-        chunk.write_constant(1.2, 182);
+        chunk.write_constant(ValueType::Float(1.2), 123);
+        chunk.write_constant(ValueType::Float(1.2), 123);
+        chunk.write_constant(ValueType::Float(1.2), 123);
+        chunk.write_constant(ValueType::Float(1.2), 128);
+        chunk.write_constant(ValueType::Float(1.2), 182);
 
         // Test line length
         assert_eq!(chunk.lines.len(), 3);
@@ -215,38 +222,38 @@ mod tests {
     }
 
     // TODO - Implement test
+    #[test]
     fn test_binary_operations() {
         let mut chunk = Chunk::new();
-        chunk.write_constant(1.2, 123);
-        chunk.write_constant(1.5, 123);
+        chunk.write_constant(ValueType::Float(1.2), 123);
+        chunk.write_constant(ValueType::Float(1.5), 123);
 
-        chunk.write_constant(6.2, 128);
+        chunk.write_constant(ValueType::Float(6.2), 128);
         chunk.write_chunk(ByteCode::Negate as u8, 2);
 
-        chunk.write_constant(1.0, 132);
-        chunk.write_constant(2.0, 132);
+        chunk.write_constant(ValueType::Float(1.0), 132);
+        chunk.write_constant(ValueType::Float(2.0), 132);
         chunk.write_chunk(ByteCode::Add as u8, 132);
 
-        chunk.write_constant(1.0, 132);
-        chunk.write_constant(2.0, 132);
+        chunk.write_constant(ValueType::Float(1.0), 132);
+        chunk.write_constant(ValueType::Float(2.0), 132);
         chunk.write_chunk(ByteCode::Subtract as u8, 132);
 
-        chunk.write_constant(1.0, 132);
-        chunk.write_constant(2.0, 132);
+        chunk.write_constant(ValueType::Float(1.0), 132);
+        chunk.write_constant(ValueType::Float(2.0), 132);
         chunk.write_chunk(ByteCode::Multiply as u8, 132);
 
-        chunk.write_constant(1.0, 132);
-        chunk.write_constant(2.0, 132);
+        chunk.write_constant(ValueType::Float(1.0), 132);
+        chunk.write_constant(ValueType::Float(2.0), 132);
         chunk.write_chunk(ByteCode::Divide as u8, 132);
 
         chunk.write_chunk(ByteCode::Return as u8, 123);
 
         #[cfg(feature = "debug_trace_execution")]
-        disassemble_chunk(&chunk, "test chunk");
+        _disassemble_chunk(&chunk, "test chunk");
 
         let mut vm = VirtualMachine::new(&chunk);
-        let result = vm
-            .run_interpreter()
+        vm.run_interpreter()
             .unwrap_or_else(|error| panic!("VM failed: {:?}", error));
     }
 }

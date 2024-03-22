@@ -18,7 +18,8 @@ mod tests;
 
 pub type LexResult = Result<Token, LexicalError>;
 
-// TODO - Implement all errors
+// TODO - Implement lexical errors
+// LINK - https://github.com/gleam-lang/gleam/blob/main/compiler-core/src/parse/lexer.rs#L19
 pub struct Lexer<R: Read> {
     pub current_line: i32,
 
@@ -121,7 +122,7 @@ impl<R: Read> Lexer<R> {
                     token: byte_char.unwrap() as char,
                 },
 
-                line: self.current_line,
+                line: self.current_line + 1,
             }),
         }
     }
@@ -159,7 +160,7 @@ impl<R: Read> Lexer<R> {
             if next_byte.is_none() {
                 return Err(LexicalError {
                     error: LexicalErrorType::UnexpectedStringEnd,
-                    line: self.current_line,
+                    line: self.current_line + 1,
                 });
             }
 
@@ -187,15 +188,17 @@ impl<R: Read> Lexer<R> {
             b'n' => Ok(b'\n'),
             b'r' => Ok(b'\r'),
             b't' => Ok(b'\t'),
-            b'\\' => Ok(b'\\'),
             b'"' => Ok(b'"'),
+
+            b'\\' => Ok(b'\\'),
             b'\'' => Ok(b'\''),
+
             b'x' => self.read_hexadecimal_escape(), // format: \xXX
             character @ b'0'..=b'9' => self.read_decimal_escape(character), // format: \d[d[d]]
 
             _ => Err(LexicalError {
                 error: LexicalErrorType::BadStringEscape,
-                line: self.current_line,
+                line: self.current_line + 1,
             }),
         }
     }

@@ -1,4 +1,4 @@
-use crate::chunk::{ByteCode, Chunk};
+use crate::chunk::{ByteCode, Chunk, ValueType};
 use crate::parser::lexer::Lexer;
 use crate::parser::tokens::Token;
 
@@ -9,7 +9,7 @@ fn constant_long_instruction(chunk: &Chunk, offset: usize) -> (String, usize) {
         | ((chunk.code[offset + 2] as u32) << 8) // mid byte
         | ((chunk.code[offset + 3] as u32) << 16); // highest byte
 
-    let constant_value: f64 = chunk.constants[constant_index as usize];
+    let constant_value: ValueType = chunk.constants[constant_index as usize];
     let instruction_size = 4;
 
     (
@@ -29,7 +29,7 @@ fn simple_instruction(operation: &str, offset: usize) -> (String, usize) {
 
 fn constant_instruction(chunk: &Chunk, offset: usize) -> (String, usize) {
     let constant_index: u8 = chunk.code[offset + 1];
-    let constant_value: f64 = chunk.constants[constant_index as usize];
+    let constant_value: ValueType = chunk.constants[constant_index as usize];
     let instruction_size = 2;
 
     (
@@ -79,7 +79,7 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize) -> (String, usize) 
 }
 
 #[cfg(feature = "debug_trace_execution")]
-pub fn disassemble_chunk(chunk: &Chunk, name: &str) {
+pub fn _disassemble_chunk(chunk: &Chunk, name: &str) {
     println!("==== Chunk {:?} Disassemble ====", name);
     println!("LINE | OPCODE | VALUE? | ...\n");
 
@@ -93,7 +93,7 @@ pub fn disassemble_chunk(chunk: &Chunk, name: &str) {
 }
 
 #[cfg(feature = "debug_trace_lex_execution")]
-pub fn disassemble_lexer<R: std::io::Read>(lexer: &mut Lexer<R>, name: &str) {
+pub fn _disassemble_lexer<R: std::io::Read>(lexer: &mut Lexer<R>, name: &str) {
     println!("==== Lexer {:?} Disassemble ====", name);
     println!("LINE | TOKEN");
 

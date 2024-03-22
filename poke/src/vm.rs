@@ -1,4 +1,4 @@
-use crate::chunk::{ByteCode, Chunk, Value};
+use crate::chunk::{ByteCode, Chunk, ValueType};
 
 #[cfg(feature = "debug_trace_execution")]
 use crate::debug::disassemble_instruction;
@@ -19,7 +19,7 @@ pub struct VirtualMachine<'a> {
     /// Holds the index of the current instruction within the bytecode array
     ip: usize,
 
-    stack: Vec<Value>,
+    stack: Vec<ValueType>,
 }
 
 impl<'a> VirtualMachine<'a> {
@@ -45,7 +45,7 @@ impl<'a> VirtualMachine<'a> {
         val
     }
 
-    fn binary_op(&mut self, op: fn(Value, Value) -> Value) -> Option<InterpretResult> {
+    fn binary_op(&mut self, op: fn(ValueType, ValueType) -> ValueType) -> Option<InterpretResult> {
         let a = self.stack.pop()?;
         let b = self.stack.pop()?;
         let op_result = op(a, b);
@@ -70,7 +70,7 @@ impl<'a> VirtualMachine<'a> {
             #[cfg(feature = "debug_trace_execution")]
             {
                 for value in &self.stack {
-                    println!("STACK [{}]", value);
+                    println!("STACK [{:?}]", value);
                 }
 
                 println!("-");
@@ -86,7 +86,7 @@ impl<'a> VirtualMachine<'a> {
 
             return match operation.unwrap() {
                 ByteCode::Constant => {
-                    let constant: Value = self.chunk.constants[self.advance_ip(1) as usize];
+                    let constant: ValueType = self.chunk.constants[self.advance_ip(1) as usize];
                     self.stack.push(constant);
 
                     continue;

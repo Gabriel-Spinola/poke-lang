@@ -3,14 +3,10 @@ mod debug;
 mod parser;
 mod value;
 mod vm;
-use chunk::{ByteCode, Chunk};
-use parser::lexer::Lexer;
+use chunk::Chunk;
+use parser::parser::Parser;
 use std::{env, fs::File, io::BufReader};
 use vm::VirtualMachine;
-
-#[cfg(feature = "debug_trace_execution")]
-#[cfg(feature = "debug_trace_lex_execution")]
-use debug::disassemble_lexer;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -20,14 +16,10 @@ fn main() {
         return;
     }
 
-    let file = File::open(&args[1]).unwrap();
-    let mut lexer = Lexer::new(BufReader::new(file));
-
-    #[cfg(feature = "debug_trace_lex_execution")]
-    disassemble_lexer(&mut lexer, "operators");
+    let file = File::open(&args[1]).expect("poke file");
 
     let mut chunk = Chunk::new();
-    chunk.write_chunk(ByteCode::Return as u8, 0);
+    let mut _parser = Parser::new(&mut chunk).load(BufReader::new(file));
 
     let mut vm = VirtualMachine::new(&chunk);
     match vm.run_interpreter() {
