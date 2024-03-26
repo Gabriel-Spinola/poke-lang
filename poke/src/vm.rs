@@ -160,11 +160,9 @@ impl<'a> VirtualMachine<'a> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::debug::_disassemble_chunk;
 
-    use super::*;
-
-    // TODO - Implement test
     #[test]
     fn test_binary_unary_operations() {
         let mut chunk = Chunk::new();
