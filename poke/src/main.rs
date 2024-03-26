@@ -18,6 +18,8 @@ fn main() {
 
     let file = File::open(&args[1]).expect("poke file");
 
+    // ANCHOR - "Compiling proccess": If no error encountered, take user's program
+    // and fill it with bytecode, so it can be executed by the VM
     let mut chunk = Chunk::new();
     let mut _parser = Parser::new(&mut chunk).load(BufReader::new(file));
 

@@ -70,7 +70,7 @@ pub enum Token {
 
     // Data types, (refers to to their actual value no keywords)
     Int { value: i32 },
-    Float { value: f32 },
+    Float { value: f64 },
     String { value: String },
     Bool { value: bool },
     Byte { value: u8 },

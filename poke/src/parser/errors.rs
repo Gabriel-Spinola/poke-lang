@@ -13,6 +13,7 @@ pub struct LexicalError {
 
 pub enum ParseErrorType {
     LexError { error: LexicalError },
+    UnexpectedToken,
 }
 
 pub struct ParseError {

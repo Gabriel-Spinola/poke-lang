@@ -36,7 +36,7 @@ impl<R: Read> Lexer<R> {
         }
     }
 
-    pub fn _peek(&mut self) -> Result<&Token, LexicalError> {
+    pub fn peek(&mut self) -> Result<&Token, LexicalError> {
         if self.ahead == Token::EoS {
             self.ahead = self.advance()?;
         }
@@ -288,7 +288,7 @@ impl<R: Read> Lexer<R> {
         }
 
         if is_float {
-            let float_value = buffer.parse::<f32>().unwrap_or_else(|error| {
+            let float_value = buffer.parse::<f64>().unwrap_or_else(|error| {
                 panic!(
                     "(lexer) failed to parse value {:?} to float. {}",
                     buffer, error
