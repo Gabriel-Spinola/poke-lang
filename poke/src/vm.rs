@@ -1,4 +1,7 @@
-use crate::chunk::{ByteCode, Chunk, ValueType};
+use crate::{
+    chunk::{ByteCode, Chunk},
+    value::ValueType,
+};
 
 #[cfg(feature = "debug_trace_execution")]
 use crate::debug::disassemble_instruction;
@@ -45,12 +48,25 @@ impl<'a> VirtualMachine<'a> {
         val
     }
 
-    fn binary_op(&mut self, op: fn(ValueType, ValueType) -> ValueType) -> Option<InterpretResult> {
-        let a = self.stack.pop()?;
-        let b = self.stack.pop()?;
-        let op_result = op(a, b);
+    // FIXME - binary operation automatically conver type to float
+    fn binary_op(&mut self, op: fn(f64, f64) -> f64) -> Option<InterpretResult> {
+        let left = match self.stack.pop()? {
+            ValueType::Float(value) => value,
+            ValueType::Int(value) => value as f64,
+            ValueType::Byte(value) => value as f64,
+            ValueType::Nil => todo!(),
+        };
 
-        self.stack.push(op_result);
+        let right = match self.stack.pop()? {
+            ValueType::Float(value) => value,
+            ValueType::Int(value) => value as f64,
+            ValueType::Byte(value) => value as f64,
+            ValueType::Nil => todo!(),
+        };
+
+        let op_result = op(right, left);
+
+        self.stack.push(ValueType::Float(op_result));
 
         Some(Ok(()))
     }
@@ -93,8 +109,11 @@ impl<'a> VirtualMachine<'a> {
                 }
                 ByteCode::Negate => {
                     if let Some(value) = self.stack.pop() {
-                        // Negate the given value
-                        self.stack.push(-value);
+                        self.stack.push(
+                            value
+                                .negate()
+                                .unwrap_or_else(|err| panic!("failed to negate value: {:?}", err)),
+                        );
                     }
 
                     continue;
@@ -130,11 +149,6 @@ impl<'a> VirtualMachine<'a> {
                 }
 
                 ByteCode::Return => {
-                    // Pop the top
-                    if let Some(value) = self.stack.pop() {
-                        println!("Popped from stack: {}", value);
-                    }
-
                     return Ok(());
                 }
 
@@ -144,4 +158,47 @@ impl<'a> VirtualMachine<'a> {
     }
 }
 
-// TODO - write vm tests
+#[cfg(test)]
+mod tests {
+    use crate::debug::_disassemble_chunk;
+
+    use super::*;
+
+    // TODO - Implement test
+    #[test]
+    fn test_binary_unary_operations() {
+        let mut chunk = Chunk::new();
+
+        chunk.write_constant(ValueType::Float(6.2), 128);
+        chunk.write_chunk(ByteCode::Negate as u8, 2);
+
+        chunk.write_constant(ValueType::Float(1.0), 132);
+        chunk.write_chunk(ByteCode::Add as u8, 132);
+
+        chunk.write_constant(ValueType::Float(5.0), 132);
+        chunk.write_constant(ValueType::Float(1.0), 132);
+        chunk.write_chunk(ByteCode::Subtract as u8, 132);
+
+        chunk.write_constant(ValueType::Float(4.2), 132);
+        chunk.write_constant(ValueType::Float(3.0), 132);
+        chunk.write_chunk(ByteCode::Multiply as u8, 132);
+
+        chunk.write_constant(ValueType::Float(4.0), 132);
+        chunk.write_constant(ValueType::Float(0.5), 132);
+        chunk.write_chunk(ByteCode::Divide as u8, 132);
+
+        chunk.write_chunk(ByteCode::Return as u8, 123);
+
+        #[cfg(feature = "debug_trace_execution")]
+        _disassemble_chunk(&chunk, "test chunk");
+
+        let mut vm = VirtualMachine::new(&chunk);
+        vm.run_interpreter()
+            .unwrap_or_else(|error| panic!("VM failed: {:?}", error));
+
+        assert_eq!(vm.stack.pop(), Some(ValueType::Float(8.0))); // Divide
+        assert_eq!(vm.stack.pop(), Some(ValueType::Float(12.600000000000001))); // Multiply
+        assert_eq!(vm.stack.pop(), Some(ValueType::Float(4.0))); // Subtract
+        assert_eq!(vm.stack.pop(), Some(ValueType::Float(-5.2))); // Add & Negate
+    }
+}

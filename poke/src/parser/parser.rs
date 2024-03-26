@@ -1,8 +1,9 @@
 use std::io::Read;
 
 use crate::{
-    chunk::{ByteCode, Chunk, ValueType},
+    chunk::{ByteCode, Chunk},
     debug,
+    value::ValueType,
 };
 
 use super::{

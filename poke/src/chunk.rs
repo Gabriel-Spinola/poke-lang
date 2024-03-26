@@ -1,7 +1,9 @@
 // LINK - https://craftinginterpreters.com/chunks-of-bytecode.html
 
 use macros::AllVariants;
-use std::{collections::HashMap, fmt};
+use std::{arch::x86_64::_SIDD_LEAST_SIGNIFICANT, collections::HashMap, fmt};
+
+use crate::value::ValueType;
 
 // REVIEW - Consider using variant parameters
 #[repr(u8)]
@@ -43,15 +45,6 @@ impl fmt::Display for ByteCode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }
-}
-
-// TODO - Implement value traits for operation
-#[derive(Debug, PartialEq)]
-pub enum ValueType {
-    Float(f64),
-    Int(i32),
-    Byte(u8),
-    Nil,
 }
 
 pub struct Chunk {
@@ -141,7 +134,6 @@ impl Chunk {
 
 #[cfg(test)]
 mod tests {
-    use crate::{debug::_disassemble_chunk, vm::VirtualMachine};
 
     use super::*;
 
@@ -219,41 +211,5 @@ mod tests {
         assert_eq!(chunk.get_line(&(3 * const_intruction_size)).unwrap(), &123);
         assert_eq!(chunk.get_line(&(4 * const_intruction_size)).unwrap(), &128);
         assert_eq!(chunk.get_line(&(5 * const_intruction_size)).unwrap(), &182);
-    }
-
-    // TODO - Implement test
-    #[test]
-    fn test_binary_operations() {
-        let mut chunk = Chunk::new();
-        chunk.write_constant(ValueType::Float(1.2), 123);
-        chunk.write_constant(ValueType::Float(1.5), 123);
-
-        chunk.write_constant(ValueType::Float(6.2), 128);
-        chunk.write_chunk(ByteCode::Negate as u8, 2);
-
-        chunk.write_constant(ValueType::Float(1.0), 132);
-        chunk.write_constant(ValueType::Float(2.0), 132);
-        chunk.write_chunk(ByteCode::Add as u8, 132);
-
-        chunk.write_constant(ValueType::Float(1.0), 132);
-        chunk.write_constant(ValueType::Float(2.0), 132);
-        chunk.write_chunk(ByteCode::Subtract as u8, 132);
-
-        chunk.write_constant(ValueType::Float(1.0), 132);
-        chunk.write_constant(ValueType::Float(2.0), 132);
-        chunk.write_chunk(ByteCode::Multiply as u8, 132);
-
-        chunk.write_constant(ValueType::Float(1.0), 132);
-        chunk.write_constant(ValueType::Float(2.0), 132);
-        chunk.write_chunk(ByteCode::Divide as u8, 132);
-
-        chunk.write_chunk(ByteCode::Return as u8, 123);
-
-        #[cfg(feature = "debug_trace_execution")]
-        _disassemble_chunk(&chunk, "test chunk");
-
-        let mut vm = VirtualMachine::new(&chunk);
-        vm.run_interpreter()
-            .unwrap_or_else(|error| panic!("VM failed: {:?}", error));
     }
 }

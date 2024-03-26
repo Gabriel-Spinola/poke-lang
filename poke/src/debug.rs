@@ -1,6 +1,7 @@
-use crate::chunk::{ByteCode, Chunk, ValueType};
+use crate::chunk::{ByteCode, Chunk};
 use crate::parser::lexer::Lexer;
 use crate::parser::tokens::Token;
+use crate::value::ValueType;
 
 fn constant_long_instruction(chunk: &Chunk, offset: usize) -> (String, usize) {
     // by combining the three bytes using `|`, we merge thenm into a single
