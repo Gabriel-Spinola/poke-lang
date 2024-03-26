@@ -47,10 +47,20 @@ fn constant_instruction(chunk: &Chunk, offset: usize) -> (String, usize) {
 #[cfg(feature = "debug_trace_execution")]
 pub fn disassemble_instruction(chunk: &Chunk, offset: usize) -> (String, usize) {
     // Print lines info
-    let instruction = chunk.code[offset];
-    let line = chunk
-        .get_line(&offset)
-        .unwrap_or_else(|| panic!("line not found for given instruction: {:04}", instruction));
+    let instruction = chunk.code.get(offset);
+    if instruction.is_none() {
+        return (
+            format!("bytecode with offset: {} not found", offset),
+            offset + 1,
+        );
+    }
+
+    let line = chunk.get_line(&offset).unwrap_or_else(|| {
+        panic!(
+            "line not found for given instruction: {:04}",
+            instruction.unwrap()
+        )
+    });
 
     if (offset > 0) && (line == chunk.get_line(&(offset - 1)).unwrap()) {
         print!("  |  ");
@@ -59,7 +69,7 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize) -> (String, usize) 
     }
 
     // Print Operations info
-    if let Some(operation) = ByteCode::all_variants().get(instruction as usize) {
+    if let Some(operation) = ByteCode::all_variants().get(*instruction.unwrap() as usize) {
         return match operation {
             ByteCode::Return => simple_instruction("OP_RETURN", offset),
             ByteCode::Constant => constant_instruction(chunk, offset),
@@ -74,7 +84,7 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize) -> (String, usize) 
 
     // Not found case
     (
-        format!("Unknown operator code: {}", instruction),
+        format!("Unknown operator code: {}", instruction.unwrap()),
         offset + 1,
     )
 }

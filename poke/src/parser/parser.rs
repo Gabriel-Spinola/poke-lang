@@ -44,6 +44,7 @@ impl<'a, R: Read> Parser<'a, R> {
 
     fn advance(&mut self) -> ParseResult {
         loop {
+            // REVIEW - I don't know if borrowing as mutable every iteration is a good ideia
             let current_token = self
                 .lex
                 .as_mut()
@@ -69,8 +70,6 @@ impl<'a, R: Read> Parser<'a, R> {
 
                 _ => continue,
             }
-
-            println!("{:?}", current_token);
         }
 
         Ok(Token::Nil)
@@ -98,6 +97,7 @@ impl<'a, R: Read> Parser<'a, R> {
     }
 
     fn parse_grouping(&mut self) -> Result<(), ParseError> {
+        let _ = self.advance()?;
         let _ = self.consume(Token::ParR)?;
 
         Ok(())
