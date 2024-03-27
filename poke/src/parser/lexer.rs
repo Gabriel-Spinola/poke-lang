@@ -2,6 +2,11 @@
 // LINK - https://github.com/WuBingzheng/build-lua-in-rust/blob/main/listing/ch09.closure/src/lex.rs
 // LINK - https://github.com/gleam-lang/gleam/blob/main/compiler-core/src/parse/
 
+#[cfg(test)]
+#[path = "./tests.rs"]
+mod tests;
+
+use super::errors::{LexicalError, LexicalErrorType};
 use crate::parser::tokens::Token;
 use core::panic;
 use std::{
@@ -10,15 +15,8 @@ use std::{
     mem,
 };
 
-use super::errors::{LexicalError, LexicalErrorType};
-
-#[cfg(test)]
-#[path = "./tests.rs"]
-mod tests;
-
 pub type LexResult = Result<Token, LexicalError>;
 
-// TODO - Implement lexical errors
 // LINK - https://github.com/gleam-lang/gleam/blob/main/compiler-core/src/parse/lexer.rs#L19
 pub struct Lexer<R: Read> {
     pub current_line: i32,

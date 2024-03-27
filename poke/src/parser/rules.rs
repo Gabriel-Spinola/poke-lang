@@ -4,7 +4,11 @@ use std::io::Read;
 
 /// Short for:
 /// ```rust
-/// Par
+/// ParseRule {
+///     prefix: $firstParam
+///     infix: $secondParam
+///     precendence: $thirdParam
+/// }
 /// ```
 macro_rules! parse_rule {
     ($prefix:expr, $infix:expr, $precedence:expr) => {
@@ -49,7 +53,7 @@ pub struct ParseRule<'a, R: Read> {
 /// REVIEW - Maybe infix-only tokens don't need to be in the token rules array because they can be directly converted to bytecode (numeric type, for example).
 ///
 /// NOTE - Why this is what it is:
-/// In the book, to create the parsing rules, C99's designated initializer
+/// In the book, to create the parsing rules, The C99's designated initializer
 /// syntax is used. This feature is impossible in safe Rust. Also, in Rust, to
 /// use Tokens as an index, we would need to specify a data structure like
 /// vectors or hashmaps. However, considering this is a performance-critical
@@ -65,7 +69,8 @@ pub struct ParseRule<'a, R: Read> {
 /// `TokenRules` enum is because Rust doesn't allow me to just have a byte value
 /// assigned to an enumerator position if any of these enumerators store a typed
 /// value. I do think this solution here is memory-efficient and it seems
-/// to work, but I really damn hate the overall verbosity it turned out to have.
+/// to work, but I really damn hate the overall verbosity and lack of readability
+/// it turned out to have.
 impl<'a, R: Read> ParseRule<'a, R> {
     /// Get the corresponding ParseRule for a given `TokenRule` enumerator
     /// You can use normal Tokens by calling the to_rules macro

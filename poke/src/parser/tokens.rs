@@ -98,10 +98,10 @@ impl PartialEq for Token {
     }
 }
 
+// REVIEW - Consider convert to a impl of Token
 #[repr(u8)]
 #[derive(Debug)]
 pub enum TokenRule {
-    // Keywords
     And,
     Do,
     Then,
@@ -122,9 +122,6 @@ pub enum TokenRule {
     Until,
     Require,
     Break,
-
-    // Operations
-    //   +     -   *    /    %    ^    #
     Add,
     Sub,
     Mul,
@@ -132,16 +129,12 @@ pub enum TokenRule {
     Mod,
     Pow,
     Len,
-
-    //    &       ~       |       <<      >>     //
     BitAnd,
     BitOr,
     BitNot,
     ShiftL,
     ShiftR,
     Idiv,
-
-    //   ==       ~=     <=      >=      <       >     =
     Equal,
     NotEq,
     LesEq,
@@ -149,8 +142,6 @@ pub enum TokenRule {
     Less,
     Greater,
     Assign,
-
-    //  (       )       {      }      [       ]      ::
     ParL,
     ParR,
     CurlyL,
@@ -158,8 +149,6 @@ pub enum TokenRule {
     SqurL,
     SqurR,
     DoubColon,
-
-    //      ;        :       ,      .    <>     ..     ->
     SemiColon,
     Colon,
     Comma,
@@ -167,8 +156,6 @@ pub enum TokenRule {
     Concat,
     Dots,
     Arrow,
-
-    // Data types (refers to to their actual value no keywords)
     Int,
     Float,
     String,
@@ -176,8 +163,6 @@ pub enum TokenRule {
     Byte,
 
     Identifier,
-
-    // End of line
     EoS,
 }
 

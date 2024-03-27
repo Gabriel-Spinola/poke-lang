@@ -71,7 +71,6 @@ impl<'a> VirtualMachine<'a> {
         Some(Ok(()))
     }
 
-    // TODO - Make return Result with custom interpret errors
     pub fn run_interpreter(&mut self) -> InterpretResult {
         #[cfg(feature = "debug_trace_execution")]
         {

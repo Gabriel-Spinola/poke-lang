@@ -3,7 +3,7 @@ use std::{
     fmt::{self},
 };
 
-// TODO - Implement value traits for operation
+// TODO - Finish value types
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ValueType {
     Float(f64),

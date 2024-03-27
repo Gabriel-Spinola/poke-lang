@@ -1,3 +1,8 @@
+// Gleam parser source code, in wich also uses precedence for parsing expressions
+// LINK - https://github.com/gleam-lang/gleam/blob/main/compiler-core/src/parse.rs#L182
+// Singe-Pass Compilation
+// LINK - https://craftinginterpreters.com/compiling-expressions.html#single-pass-compilation
+
 #[path = "./rules.rs"]
 pub mod rules;
 
@@ -17,14 +22,15 @@ use std::io::Read;
 
 pub type ParseResult = Result<Token, ParseError>;
 
-// REVIEW - Consider the usage of `&'a dyn Fn(&'a mut Parser<'_, R>)` if more flexibility is needed
+/// Represents a parsing function used by the parser.
+/// Takes a mutable reference to the parser and an optional reference to the current token being parsed.
+/// Returns a result indicating success or a parse error.
+///
+/// NOTE - Consider the usage of `&'a dyn Fn(&'a mut Parser<'_, R>)` if more flexibility is needed
 pub type ParseFn<'a, R> = fn(&'a mut Parser<'_, R>, Option<&'a Token>) -> Result<(), ParseError>;
 
-// Gleam parser source code, in wich also uses precedence for parsing expressions
-// LINK - https://github.com/gleam-lang/gleam/blob/main/compiler-core/src/parse.rs#L182
-
-/// Singe-Pass Compilation?
-/// LINK - https://craftinginterpreters.com/compiling-expressions.html#single-pass-compilation
+/// REVIEW - maybe we should just generete the chunk here instead of borrowing
+/// TODO - Write line data
 pub struct Parser<'a, R: Read> {
     pub chunk: &'a mut Chunk,
 
@@ -36,13 +42,14 @@ impl<'a, R: Read> Parser<'a, R> {
         Parser { chunk, lex: None }
     }
 
+    /// Run the parser (for now)
     pub fn load(&mut self, input: R) -> ParseResult {
         self.lex = Some(Lexer::new(input));
 
         // #[cfg(feature = "debug_trace_lex_execution")]
         // _disassemble_lexer(&mut lexer, "operators");
 
-        // NOTE - If error found: stop parsing and then propagate error
+        // NOTE - If error found: stop compiling and then propagate error
         self.advance().map_err(|err| {
             self.finish_code_execution(0);
 
@@ -68,7 +75,6 @@ impl<'a, R: Read> Parser<'a, R> {
                 break;
             }
 
-            // TODO - Line data
             match current_token {
                 // ANCHOR - Parse numbers
                 Token::Int { value } => self.chunk.write_constant(ValueType::Int(value), 0),
@@ -154,7 +160,7 @@ impl<'a, R: Read> Parser<'a, R> {
         }
     }
 
-    fn parse_binary_op(&mut self, current_token: &Token) -> Result<(), ParseError> {
+    fn parse_binary_op(&mut self, _current_token: &Token) -> Result<(), ParseError> {
         todo!()
     }
 }
