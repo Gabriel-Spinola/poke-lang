@@ -1,90 +1,19 @@
+use super::{ParseFn, Parser};
+use crate::parser::tokens::TokenRule;
 use std::io::Read;
 
-use macros::AllVariants;
-
-use super::{ParseFn, Parser};
-
-#[repr(u8)]
-#[derive(Debug, AllVariants)]
-pub enum TokenRule {
-    // Keywords
-    And,
-    Do,
-    Then,
-    If,
-    Else,
-    ElseIf,
-    End,
-    For,
-    In,
-    Function,
-    Mut,
-    Nil,
-    Not,
-    Or,
-    While,
-    Repeat,
-    Return,
-    Until,
-    Require,
-    Break,
-
-    // Operations
-    //   +     -   *    /    %    ^    #
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Mod,
-    Pow,
-    Len,
-
-    //    &       ~       |       <<      >>     //
-    BitAnd,
-    BitOr,
-    BitNot,
-    ShiftL,
-    ShiftR,
-    Idiv,
-
-    //   ==       ~=     <=      >=      <       >     =
-    Equal,
-    NotEq,
-    LesEq,
-    GreEq,
-    Less,
-    Greater,
-    Assign,
-
-    //  (       )       {      }      [       ]      ::
-    ParL,
-    ParR,
-    CurlyL,
-    CurlyR,
-    SqurL,
-    SqurR,
-    DoubColon,
-
-    //      ;        :       ,      .    <>     ..     ->
-    SemiColon,
-    Colon,
-    Comma,
-    Dot,
-    Concat,
-    Dots,
-    Arrow,
-
-    // Data types (refers to to their actual value no keywords)
-    Int,
-    Float,
-    String,
-    Bool,
-    Byte,
-
-    Identifier,
-
-    // End of line
-    EoS,
+/// Short for:
+/// ```rust
+/// Par
+/// ```
+macro_rules! parse_rule {
+    ($prefix:expr, $infix:expr, $precedence:expr) => {
+        ParseRule {
+            prefix: $prefix,
+            infix: $infix,
+            precedence: $precedence,
+        }
+    };
 }
 
 pub const RULES_COUNT: usize = (TokenRule::EoS as usize) + 1;
@@ -116,19 +45,36 @@ pub struct ParseRule<'a, R: Read> {
     pub precedence: Precedence,
 }
 
-impl<'a, R: Read> Default for ParseRule<'a, R> {
-    fn default() -> Self {
-        Self {
-            prefix: Default::default(),
-            infix: Default::default(),
-            precedence: Default::default(),
-        }
-    }
-}
-
-// REVIEW - I hate this
-// REVIEW - Maybe infix only tokens don't need a Token Rule, because they can be directly converted to bytecode (numeric type for example)
+/// REVIEW - I hate this
+/// REVIEW - Maybe infix-only tokens don't need to be in the token rules array because they can be directly converted to bytecode (numeric type, for example).
+///
+/// NOTE - Why this is what it is:
+/// In the book, to create the parsing rules, C99's designated initializer
+/// syntax is used. This feature is impossible in safe Rust. Also, in Rust, to
+/// use Tokens as an index, we would need to specify a data structure like
+/// vectors or hashmaps. However, considering this is a performance-critical
+/// part of the application, I don't think it's a good idea to store any of this
+/// data on the heap. So, in order to keep all of these operations as
+/// memory-efficient as possible (which is not much, considering I don't know Rust),
+/// I'm using a reference to a static array of parsing rules. Since it's static,
+/// Rust doesn't allow me to use the Default trait or late initialization by
+/// using TokenRules byte values. Also, implying that we're using references
+/// instead of copying everything is filled with lifetimes.
+///
+/// Another little problem I encountered is that the whole existence of the
+/// `TokenRules` enum is because Rust doesn't allow me to just have a byte value
+/// assigned to an enumerator position if any of these enumerators store a typed
+/// value. I do think this solution here is memory-efficient and it seems
+/// to work, but I really damn hate the overall verbosity it turned out to have.
 impl<'a, R: Read> ParseRule<'a, R> {
+    /// Get the corresponding ParseRule for a given `TokenRule` enumerator
+    /// You can use normal Tokens by calling the to_rules macro
+    /// ```rust
+    /// assert_eq!(
+    ///     ParseRule::<'_, R>::get_rule(Token::And.to_rule().unwrap()),
+    ///     &Self::rules()[0]
+    /// )
+    /// ```
     pub fn get_rule(token: TokenRule) -> &'a ParseRule<'a, R> {
         &Self::rules()[token as usize]
     }
@@ -136,381 +82,175 @@ impl<'a, R: Read> ParseRule<'a, R> {
     pub fn rules() -> &'a [ParseRule<'a, R>; RULES_COUNT] {
         &[
             // And
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Do
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Then,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // If,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // ElseIf,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Else,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // End,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // For,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // In,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Function,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Mut,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Nil,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Not,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Or,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // While,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Repeat,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Return,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Until,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Require,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Break,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Add,
-            ParseRule {
-                prefix: None,
-                infix: Some(|parser: &mut Parser<'_, R>, current_token| {
+            parse_rule!(
+                None,
+                Some(|parser: &mut Parser<'_, R>, current_token| {
                     parser.parse_binary_op(current_token.unwrap())
                 }),
-                precedence: Precedence::Term,
-            },
+                Precedence::Term
+            ),
             // Sub,
-            ParseRule {
-                prefix: Some(|parser: &mut Parser<'_, R>, current_token| {
+            parse_rule!(
+                Some(|parser: &mut Parser<'_, R>, current_token| {
                     parser.parse_unary_op(current_token.unwrap())
                 }),
-                infix: Some(|parser: &mut Parser<'_, R>, current_token| {
+                Some(|parser: &mut Parser<'_, R>, current_token| {
                     parser.parse_binary_op(current_token.unwrap())
                 }),
-                precedence: Precedence::Term,
-            },
+                Precedence::Term
+            ),
             // Mul,
-            ParseRule {
-                prefix: None,
-                infix: Some(|parser: &mut Parser<'_, R>, current_token| {
+            parse_rule!(
+                None,
+                Some(|parser: &mut Parser<'_, R>, current_token| {
                     parser.parse_binary_op(current_token.unwrap())
                 }),
-                precedence: Precedence::Factor,
-            },
+                Precedence::Factor
+            ),
             // Div,
-            ParseRule {
-                prefix: None,
-                infix: Some(|parser: &mut Parser<'_, R>, current_token| {
+            parse_rule!(
+                None,
+                Some(|parser: &mut Parser<'_, R>, current_token| {
                     parser.parse_binary_op(current_token.unwrap())
                 }),
-                precedence: Precedence::Factor,
-            },
+                Precedence::Factor
+            ),
             // Mod,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Pow,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Len,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // BitAnd,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // BitOr,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // BitNot,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // ShiftL,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // ShiftR,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Idiv,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Equal,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // NotEq,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // LesEq,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // GreEq,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Less,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Greater,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Assign,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // ParL,
-            ParseRule {
-                prefix: Some(|parser: &mut Parser<'_, R>, _| parser.parse_grouping()),
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(
+                Some(|parser: &mut Parser<'_, R>, _| parser.parse_grouping()),
+                None,
+                Precedence::None
+            ),
             // ParR,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // CurlyL,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // CurlyR,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // SqurL,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // SqurR,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // DoubColon,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // SemiColon,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Colon,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Comma,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Dot,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Concat,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Dots,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Arrow,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Int,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Float,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // String,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Bool,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Byte,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // Identifier,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
             // EoS,
-            ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
+            parse_rule!(None, None, Precedence::None),
         ]
     }
 }
+
+// NOTE - Lazy static maybe?
+// lazy_static::lazy_static! {
+//     static ref RULES: [&'static Option<ParseRule<'static, Box<dyn Read>>>; RULES_COUNT] = {
+//         let mut rules = [&None; RULES_COUNT];
+
+//         // Add rules here using local values
+//         rules[TokenRule::And as usize] = &Some(ParseRule::new(None, None, Precedence::None));
+//         rules[TokenRule::Do as usize] = &Some(ParseRule::new(None, None, Precedence::None));
+//         // Add more rules...
+
+//         rules
+//     };
+// }
+
+// pub fn get_rule<R: Read>(token: TokenRule) -> Option<&'static ParseRule<'static, R>> {
+//     RULES[token as usize].as_ref()
+// }

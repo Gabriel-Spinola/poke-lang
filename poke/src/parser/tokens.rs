@@ -1,6 +1,3 @@
-use std::hash::Hash;
-
-use crate::parser::parser::rules::TokenRule;
 use macros::ConvertToTokenRule;
 
 #[derive(Debug, Clone, ConvertToTokenRule)]
@@ -101,10 +98,87 @@ impl PartialEq for Token {
     }
 }
 
-impl Hash for Token {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        core::mem::discriminant(self).hash(state);
-    }
+#[repr(u8)]
+#[derive(Debug)]
+pub enum TokenRule {
+    // Keywords
+    And,
+    Do,
+    Then,
+    If,
+    Else,
+    ElseIf,
+    End,
+    For,
+    In,
+    Function,
+    Mut,
+    Nil,
+    Not,
+    Or,
+    While,
+    Repeat,
+    Return,
+    Until,
+    Require,
+    Break,
+
+    // Operations
+    //   +     -   *    /    %    ^    #
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
+    Pow,
+    Len,
+
+    //    &       ~       |       <<      >>     //
+    BitAnd,
+    BitOr,
+    BitNot,
+    ShiftL,
+    ShiftR,
+    Idiv,
+
+    //   ==       ~=     <=      >=      <       >     =
+    Equal,
+    NotEq,
+    LesEq,
+    GreEq,
+    Less,
+    Greater,
+    Assign,
+
+    //  (       )       {      }      [       ]      ::
+    ParL,
+    ParR,
+    CurlyL,
+    CurlyR,
+    SqurL,
+    SqurR,
+    DoubColon,
+
+    //      ;        :       ,      .    <>     ..     ->
+    SemiColon,
+    Colon,
+    Comma,
+    Dot,
+    Concat,
+    Dots,
+    Arrow,
+
+    // Data types (refers to to their actual value no keywords)
+    Int,
+    Float,
+    String,
+    Bool,
+    Byte,
+
+    Identifier,
+
+    // End of line
+    EoS,
 }
 
 #[cfg(test)]

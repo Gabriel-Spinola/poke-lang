@@ -10,3 +10,4 @@ debug_trace_lex_execution = []
 
 [dependencies]
 macros = { path = "../utils" }
+lazy_static = "1.4"

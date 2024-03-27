@@ -1,7 +1,7 @@
 #[path = "./rules.rs"]
 pub mod rules;
 
-use self::rules::{ParseRule, TokenRule};
+use self::rules::ParseRule;
 
 use super::{
     errors::{ParseError, ParseErrorType},
@@ -105,7 +105,7 @@ impl<'a, R: Read> Parser<'a, R> {
     fn peek_into_lex(&mut self) -> Result<&Token, ParseError> {
         self.lex
             .as_mut()
-            .expect("lex should not be used befored loaded")
+            .expect("lex should not be used before loaded")
             .peek()
             .map_err(|error| ParseError {
                 error: ParseErrorType::LexError { error },
@@ -117,7 +117,7 @@ impl<'a, R: Read> Parser<'a, R> {
     fn advance_lex(&mut self) -> Result<Token, ParseError> {
         self.lex
             .as_mut()
-            .expect("lex should not be used befored loaded")
+            .expect("lex should not be used before loaded")
             .advance()
             .map_err(|error| ParseError {
                 error: ParseErrorType::LexError { error },
