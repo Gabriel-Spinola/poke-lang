@@ -1,3 +1,8 @@
+#[path = "./rules.rs"]
+pub mod rules;
+
+use self::rules::{ParseRule, TokenRule};
+
 use super::{
     errors::{ParseError, ParseErrorType},
     lexer::Lexer,
@@ -10,47 +15,10 @@ use crate::{
 };
 use std::io::Read;
 
-enum Precedence {
-    None,
-    Assignment, // = ->
-    Or,         // or
-    And,        // and
-    Equality,   // == !=
-    Comparison, // < > <= >=
-    Term,       // + -
-    Factor,     // * /
-    Unary,      // - ~ not #
-    Call,       // : . ()
-    Primary,
-}
+pub type ParseResult = Result<Token, ParseError>;
 
 // REVIEW - Consider the usage of `&'a dyn Fn(&'a mut Parser<'_, R>)` if more flexibility is needed
-type ParseFn<'a, R> = fn(&'a mut Parser<'_, R>) -> Result<(), ParseError>;
-
-struct ParseRule<'a, R: Read> {
-    prefix: Option<ParseFn<'a, R>>,
-    infix: Option<ParseFn<'a, R>>,
-
-    precedence: Precedence,
-}
-
-impl<'a, R: Read> ParseRule<'a, R> {
-    pub fn rules(parser: &mut Parser<'_, R>) {
-        let a = [(
-            Token::ParL,
-            ParseRule {
-                prefix: Some(|parser: &mut Parser<'_, R>| parser.parse_grouping()),
-                infix: None,
-                precedence: Precedence::None,
-            },
-        )];
-
-        let fun = a[0].1.prefix.unwrap();
-        let _ = fun(parser);
-    }
-}
-
-pub type ParseResult = Result<Token, ParseError>;
+pub type ParseFn<'a, R> = fn(&'a mut Parser<'_, R>, Option<&'a Token>) -> Result<(), ParseError>;
 
 // Gleam parser source code, in wich also uses precedence for parsing expressions
 // LINK - https://github.com/gleam-lang/gleam/blob/main/compiler-core/src/parse.rs#L182
@@ -74,19 +42,23 @@ impl<'a, R: Read> Parser<'a, R> {
         // #[cfg(feature = "debug_trace_lex_execution")]
         // _disassemble_lexer(&mut lexer, "operators");
 
-        ParseRule::rules(self);
-
-        let _ = self.advance().map_err(|err| {
-            self.chunk.write_chunk(ByteCode::Return as u8, 0);
+        // NOTE - If error found: stop parsing and then propagate error
+        self.advance().map_err(|err| {
+            self.finish_code_execution(0);
 
             err
         })?;
-        self.chunk.write_chunk(ByteCode::Return as u8, 0);
+
+        self.finish_code_execution(0);
 
         #[cfg(feature = "debug_trace_execution")]
         debug::_disassemble_chunk(self.chunk, "parser test");
 
         Ok(Token::Nil)
+    }
+
+    fn finish_code_execution(&mut self, line: i32) {
+        self.chunk.write_chunk(ByteCode::Return as u8, line)
     }
 
     fn advance(&mut self) -> ParseResult {
@@ -103,8 +75,11 @@ impl<'a, R: Read> Parser<'a, R> {
                 Token::Float { value } => self.chunk.write_constant(ValueType::Float(value), 0),
                 Token::Byte { value } => self.chunk.write_constant(ValueType::Byte(value), 0),
 
-                Token::ParL => self.parse_grouping()?,
-
+                Token::ParL => {
+                    let rule = ParseRule::<'_, R>::get_rule(Token::ParL.to_rule().unwrap());
+                    let prefix = rule.prefix.unwrap();
+                    prefix(self, None)?;
+                }
                 _ => continue,
             }
         }
@@ -165,7 +140,7 @@ impl<'a, R: Read> Parser<'a, R> {
         Ok(())
     }
 
-    fn _parse_unary(&mut self, current_token: &Token) -> Result<(), ParseError> {
+    fn parse_unary_op(&mut self, current_token: &Token) -> Result<(), ParseError> {
         // NOTE - Compile operand
         self._parse_expression()?;
 
@@ -177,5 +152,9 @@ impl<'a, R: Read> Parser<'a, R> {
             }
             _ => todo!(), // unreachable
         }
+    }
+
+    fn parse_binary_op(&mut self, current_token: &Token) -> Result<(), ParseError> {
+        todo!()
     }
 }

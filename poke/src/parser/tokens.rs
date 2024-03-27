@@ -1,5 +1,9 @@
-// TODO - Implement lexical error result type
-#[derive(Debug, PartialEq, Clone)]
+use std::hash::Hash;
+
+use crate::parser::parser::rules::TokenRule;
+use macros::ConvertToTokenRule;
+
+#[derive(Debug, Clone, ConvertToTokenRule)]
 pub enum Token {
     // Keywords
     And,
@@ -79,6 +83,28 @@ pub enum Token {
 
     // End of line
     EoS,
+}
+
+impl PartialEq for Token {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Int { value: l_value }, Self::Int { value: r_value }) => l_value == r_value,
+            (Self::Float { value: l_value }, Self::Float { value: r_value }) => l_value == r_value,
+            (Self::String { value: l_value }, Self::String { value: r_value }) => {
+                l_value == r_value
+            }
+            (Self::Bool { value: l_value }, Self::Bool { value: r_value }) => l_value == r_value,
+            (Self::Byte { value: l_value }, Self::Byte { value: r_value }) => l_value == r_value,
+            (Self::Identifier(l0), Self::Identifier(r0)) => l0 == r0,
+            _ => core::mem::discriminant(self) == core::mem::discriminant(other),
+        }
+    }
+}
+
+impl Hash for Token {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        core::mem::discriminant(self).hash(state);
+    }
 }
 
 #[cfg(test)]

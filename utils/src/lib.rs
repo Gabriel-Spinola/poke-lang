@@ -1,6 +1,5 @@
 extern crate proc_macro;
 use proc_macro::TokenStream;
-use quote::quote;
 
 /// LINK - https://stackoverflow.com/questions/68025264/how-to-get-all-the-variants-of-an-enum-in-a-vect-with-a-proc-macro
 ///
@@ -45,4 +44,52 @@ pub fn derive_all_variants(input: TokenStream) -> TokenStream {
     };
 
     expanded.into()
+}
+
+use quote::quote;
+use syn::{parse_macro_input, DeriveInput};
+
+#[proc_macro_derive(ConvertToTokenRule)]
+pub fn convert_to_token_rule(input: TokenStream) -> TokenStream {
+    // Parse the input tokens into a syntax tree
+    let ast = parse_macro_input!(input as DeriveInput);
+
+    // Extract the name of the enum
+    let enum_name = &ast.ident;
+
+    // Generate conversion code for each variant
+    let conversion_code = match &ast.data {
+        syn::Data::Enum(data_enum) => {
+            let mut tokens = Vec::new();
+            for variant in &data_enum.variants {
+                let variant_ident = &variant.ident;
+                let conversion = match &variant.fields {
+                    syn::Fields::Unit => {
+                        quote! { Self::#variant_ident => Some(TokenRule::#variant_ident), }
+                    }
+                    syn::Fields::Named(_) => {
+                        quote! { Self::#variant_ident { .. } => Some(TokenRule::#variant_ident), }
+                    }
+                    syn::Fields::Unnamed(_) => {
+                        quote! { Self::#variant_ident(..) => Some(TokenRule::#variant_ident), }
+                    }
+                };
+                tokens.push(conversion);
+            }
+            quote! { impl #enum_name {
+                pub fn to_rule(&self) -> Option<TokenRule> {
+                    match self {
+                        #(#tokens)*
+                        _ => None,
+                    }
+                }
+            }}
+        }
+        _ => {
+            quote! { compile_error!("ConvertToTokenRule can only be derived for enums"); }
+        }
+    };
+
+    // Return the generated implementation
+    conversion_code.into()
 }
