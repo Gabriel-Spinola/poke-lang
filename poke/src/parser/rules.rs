@@ -49,6 +49,18 @@ pub struct ParseRule<'a, R: Read> {
     pub precedence: Precedence,
 }
 
+/// Get the corresponding ParseRule for a given `TokenRule` enumerator
+/// You can use normal Tokens by calling the to_rules macro
+/// ```rust
+/// assert_eq!(
+///     ParseRule::<'_, R>::get_rule(Token::And.to_rule().unwrap()),
+///     &Self::rules()[0]
+/// )
+/// ```
+pub fn get_rule<'a, R: Read>(token: TokenRule) -> &'a ParseRule<'a, R> {
+    &ParseRule::rules()[token as usize]
+}
+
 /// REVIEW - I hate this
 /// REVIEW - Maybe infix-only tokens don't need to be in the token rules array because they can be directly converted to bytecode (numeric type, for example).
 ///
@@ -72,18 +84,6 @@ pub struct ParseRule<'a, R: Read> {
 /// to work, but I really damn hate the overall verbosity and lack of readability
 /// it turned out to have.
 impl<'a, R: Read> ParseRule<'a, R> {
-    /// Get the corresponding ParseRule for a given `TokenRule` enumerator
-    /// You can use normal Tokens by calling the to_rules macro
-    /// ```rust
-    /// assert_eq!(
-    ///     ParseRule::<'_, R>::get_rule(Token::And.to_rule().unwrap()),
-    ///     &Self::rules()[0]
-    /// )
-    /// ```
-    pub fn get_rule(token: TokenRule) -> &'a ParseRule<'a, R> {
-        &Self::rules()[token as usize]
-    }
-
     pub fn rules() -> &'a [ParseRule<'a, R>; RULES_COUNT] {
         &[
             // And

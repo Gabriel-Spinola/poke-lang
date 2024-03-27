@@ -82,7 +82,7 @@ impl<'a, R: Read> Parser<'a, R> {
                 Token::Byte { value } => self.chunk.write_constant(ValueType::Byte(value), 0),
 
                 Token::ParL => {
-                    let rule = ParseRule::<'_, R>::get_rule(Token::ParL.to_rule().unwrap());
+                    let rule = rules::get_rule(Token::ParL.to_rule().unwrap());
                     let prefix = rule.prefix.unwrap();
                     prefix(self, None)?;
                 }
