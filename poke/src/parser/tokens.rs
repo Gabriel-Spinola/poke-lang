@@ -59,7 +59,7 @@ pub enum Token {
     SqurR,
     DoubColon,
 
-    //      ;        :       ,      .    <>     ..
+    //      ;        :       ,      .    <>     ..     ->
     SemiColon,
     Colon,
     Comma,
@@ -68,7 +68,7 @@ pub enum Token {
     Dots,
     Arrow,
 
-    // Data types, (refers to to their actual value no keywords)
+    // Data types (refers to to their actual value no keywords)
     Int { value: i32 },
     Float { value: f64 },
     String { value: String },

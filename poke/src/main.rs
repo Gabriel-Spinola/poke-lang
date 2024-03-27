@@ -21,7 +21,9 @@ fn main() {
     // ANCHOR - "Compiling proccess": If no error encountered, take user's program
     // and fill it with bytecode, so it can be executed by the VM
     let mut chunk = Chunk::new();
-    let mut _parser = Parser::new(&mut chunk).load(BufReader::new(file));
+    let _ = Parser::new(&mut chunk)
+        .load(BufReader::new(file))
+        .unwrap_or_else(|err| panic!("Failed to parse chunk: {:?}", err));
 
     let mut vm = VirtualMachine::new(&chunk);
     match vm.run_interpreter() {
