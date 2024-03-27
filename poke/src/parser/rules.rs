@@ -61,29 +61,31 @@ pub fn get_rule<'a, R: Read>(token: TokenRule) -> &'a ParseRule<'a, R> {
     &ParseRule::rules()[token as usize]
 }
 
-/// REVIEW - I hate this
-/// REVIEW - Maybe infix-only tokens don't need to be in the token rules array because they can be directly converted to bytecode (numeric type, for example).
-///
-/// NOTE - Why this is what it is:
-/// In the book, to create the parsing rules, The C99's designated initializer
-/// syntax is used. This feature is impossible in safe Rust. Also, in Rust, to
-/// use Tokens as an index, we would need to specify a data structure like
-/// vectors or hashmaps. However, considering this is a performance-critical
-/// part of the application, I don't think it's a good idea to store any of this
-/// data on the heap. So, in order to keep all of these operations as
-/// memory-efficient as possible (which is not much, considering I don't know Rust),
-/// I'm using a reference to a static array of parsing rules. Since it's static,
-/// Rust doesn't allow me to use the Default trait or late initialization by
-/// using TokenRules byte values. Also, implying that we're using references
-/// instead of copying everything is filled with lifetimes.
-///
-/// Another little problem I encountered is that the whole existence of the
-/// `TokenRules` enum is because Rust doesn't allow me to just have a byte value
-/// assigned to an enumerator position if any of these enumerators store a typed
-/// value. I do think this solution here is memory-efficient and it seems
-/// to work, but I really damn hate the overall verbosity and lack of readability
-/// it turned out to have.
 impl<'a, R: Read> ParseRule<'a, R> {
+    /// REVIEW - I hate this
+    /// REVIEW - Maybe infix-only tokens don't need to be in the token rules array because they can be directly converted to bytecode (numeric type, for example).
+    ///
+    /// ! The order of the rules should be the same as their respective TokenRule enumerators byte value
+    ///
+    /// NOTE - Why this is what it is:
+    /// In the book, to create the parsing rules, The C99's designated initializer
+    /// syntax is used. This feature is impossible in safe Rust. Also, in Rust, to
+    /// use Tokens as an index, we would need to specify a data structure like
+    /// vectors or hashmaps. However, considering this is a performance-critical
+    /// part of the application, I don't think it's a good idea to store any of this
+    /// data on the heap. So, in order to keep all of these operations as
+    /// memory-efficient as possible (which is not much, considering I don't know Rust),
+    /// I'm using a reference to a static array of parsing rules. Since it's static,
+    /// Rust doesn't allow me to use the Default trait or late initialization by
+    /// using TokenRules byte values. Also, implying that we're using references
+    /// instead of copying everything is filled with lifetimes.
+    ///
+    /// Another little problem I encountered is that the whole existence of the
+    /// `TokenRules` enum is because Rust doesn't allow me to just have a byte value
+    /// assigned to an enumerator position if any of these enumerators store a typed
+    /// value. I do think this solution here is memory-efficient and it seems
+    /// to work, but I really damn hate the overall verbosity and lack of readability
+    /// it turned out to have.
     pub fn rules() -> &'a [ParseRule<'a, R>; RULES_COUNT] {
         &[
             // And
