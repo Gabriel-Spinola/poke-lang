@@ -1,5 +1,5 @@
 use super::{ParseFn, Parser};
-use crate::parser::tokens::TokenRule;
+use crate::parser::tokens::{Token, TokenRule};
 use std::io::Read;
 
 /// Short for:
@@ -22,6 +22,8 @@ macro_rules! parse_rule {
 
 pub const RULES_COUNT: usize = (TokenRule::EoS as usize) + 1;
 
+#[repr(u8)]
+#[derive(Debug, Clone, Copy)]
 pub enum Precedence {
     None,
     Assignment, // = ->
@@ -57,8 +59,12 @@ pub struct ParseRule<'a, R: Read> {
 ///     &Self::rules()[0]
 /// )
 /// ```
-pub fn get_rule<'a, R: Read>(token: TokenRule) -> &'a ParseRule<'a, R> {
-    &ParseRule::rules()[token as usize]
+pub fn get_rule<'a, R: Read>(token: &Token) -> &'a ParseRule<'a, R> {
+    let token_rule = token
+        .to_rule()
+        .unwrap_or_else(|| panic!("every token shou have a corresponding token rule {token:?}"));
+
+    &ParseRule::rules()[token_rule as usize]
 }
 
 impl<'a, R: Read> ParseRule<'a, R> {
@@ -131,35 +137,25 @@ impl<'a, R: Read> ParseRule<'a, R> {
             // Add,
             parse_rule!(
                 None,
-                Some(|parser: &mut Parser<'_, R>, current_token| {
-                    parser.parse_binary_op(current_token.unwrap())
-                }),
+                Some(|parser: &mut Parser<'_, R>| { parser.parse_binary_op() }),
                 Precedence::Term
             ),
             // Sub,
             parse_rule!(
-                Some(|parser: &mut Parser<'_, R>, current_token| {
-                    parser.parse_unary_op(current_token.unwrap())
-                }),
-                Some(|parser: &mut Parser<'_, R>, current_token| {
-                    parser.parse_binary_op(current_token.unwrap())
-                }),
+                Some(|parser: &mut Parser<'_, R>| { parser.parse_unary_op() }),
+                Some(|parser: &mut Parser<'_, R>| { parser.parse_binary_op() }),
                 Precedence::Term
             ),
             // Mul,
             parse_rule!(
                 None,
-                Some(|parser: &mut Parser<'_, R>, current_token| {
-                    parser.parse_binary_op(current_token.unwrap())
-                }),
+                Some(|parser: &mut Parser<'_, R>| { parser.parse_binary_op() }),
                 Precedence::Factor
             ),
             // Div,
             parse_rule!(
                 None,
-                Some(|parser: &mut Parser<'_, R>, current_token| {
-                    parser.parse_binary_op(current_token.unwrap())
-                }),
+                Some(|parser: &mut Parser<'_, R>| { parser.parse_binary_op() }),
                 Precedence::Factor
             ),
             // Mod,
@@ -196,12 +192,12 @@ impl<'a, R: Read> ParseRule<'a, R> {
             parse_rule!(None, None, Precedence::None),
             // ParL,
             parse_rule!(
-                Some(|parser: &mut Parser<'_, R>, _| parser.parse_grouping()),
+                Some(|parser: &mut Parser<'_, R>| parser.parse_grouping()),
                 None,
                 Precedence::None
             ),
             // ParR,
-            parse_rule!(None, None, Precedence::None),
+            parse_rule!(None, None, Precedence::Assignment),
             // CurlyL,
             parse_rule!(None, None, Precedence::None),
             // CurlyR,
@@ -227,15 +223,27 @@ impl<'a, R: Read> ParseRule<'a, R> {
             // Arrow,
             parse_rule!(None, None, Precedence::None),
             // Int,
-            parse_rule!(None, None, Precedence::None),
+            parse_rule!(
+                Some(|parser: &mut Parser<'_, R>| parser.parse_number()),
+                None,
+                Precedence::None
+            ),
             // Float,
-            parse_rule!(None, None, Precedence::None),
+            parse_rule!(
+                Some(|parser: &mut Parser<'_, R>| parser.parse_number()),
+                None,
+                Precedence::None
+            ),
             // String,
             parse_rule!(None, None, Precedence::None),
             // Bool,
             parse_rule!(None, None, Precedence::None),
             // Byte,
-            parse_rule!(None, None, Precedence::None),
+            parse_rule!(
+                Some(|parser: &mut Parser<'_, R>| parser.parse_number()),
+                None,
+                Precedence::None
+            ),
             // Identifier,
             parse_rule!(None, None, Precedence::None),
             // EoS,

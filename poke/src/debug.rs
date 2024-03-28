@@ -46,7 +46,6 @@ fn constant_instruction(chunk: &Chunk, offset: usize) -> (String, usize) {
 
 #[cfg(feature = "debug_trace_execution")]
 pub fn disassemble_instruction(chunk: &Chunk, offset: usize) -> (String, usize) {
-    println!("OFFSET: {offset}");
     // Print lines info
     let instruction = chunk.code.get(offset);
     if instruction.is_none() {
