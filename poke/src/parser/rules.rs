@@ -68,11 +68,6 @@ pub fn get_rule<'a, R: Read>(token: &Token) -> &'a ParseRule<'a, R> {
 }
 
 impl<'a, R: Read> ParseRule<'a, R> {
-    /// REVIEW - I hate this
-    /// REVIEW - Maybe infix-only tokens don't need to be in the token rules array because they can be directly converted to bytecode (numeric type, for example).
-    ///
-    /// ! The order of the rules should be the same as their respective TokenRule enumerators byte value
-    ///
     /// NOTE - Why this is what it is:
     /// In the book, to create the parsing rules, The C99's designated initializer
     /// syntax is used. This feature is impossible in safe Rust. Also, in Rust, to
@@ -90,7 +85,7 @@ impl<'a, R: Read> ParseRule<'a, R> {
     /// `TokenRules` enum is because Rust doesn't allow me to just have a byte value
     /// assigned to an enumerator position if any of these enumerators store a typed
     /// value. I do think this solution here is memory-efficient and it seems
-    /// to work, but I really damn hate the overall verbosity and lack of readability
+    /// to work, but I really dislike the overall verbosity and lack of readability
     /// it turned out to have.
     pub fn rules() -> &'a [ParseRule<'a, R>; RULES_COUNT] {
         &[
@@ -197,7 +192,7 @@ impl<'a, R: Read> ParseRule<'a, R> {
                 Precedence::None
             ),
             // ParR,
-            parse_rule!(None, None, Precedence::Assignment),
+            parse_rule!(None, None, Precedence::None),
             // CurlyL,
             parse_rule!(None, None, Precedence::None),
             // CurlyR,

@@ -1,7 +1,5 @@
 // Gleam parser source code, in wich also uses precedence for parsing expressions
 // LINK - https://github.com/gleam-lang/gleam/blob/main/compiler-core/src/parse.rs#L182
-// Singe-Pass Compilation
-// LINK - https://craftinginterpreters.com/compiling-expressions.html#single-pass-compilation
 
 #[path = "./rules.rs"]
 pub mod rules;
@@ -23,13 +21,17 @@ use std::io::Read;
 pub type ParseResult = Result<Token, ParseError>;
 
 /// Represents a parsing function used by the parser.
-/// Takes a mutable reference to the parser and an optional reference to the current token being parsed.
+/// Takes a mutable reference to the parser
 /// Returns a result indicating success or a parse error.
 ///
 /// NOTE - Consider the usage of `&'a dyn Fn(&'a mut Parser<'_, R>)` if more flexibility is needed
 pub type ParseFn<'a, R> = fn(&'a mut Parser<'_, R>) -> Result<(), ParseError>;
 
+/// # Singe-Pass Compilation
+/// LINK - https://craftinginterpreters.com/compiling-expressions.html#single-pass-compilation
+///
 /// REVIEW - maybe we should just generete the chunk here instead of borrowing
+///
 /// TODO - Write line data
 pub struct Parser<'a, R: Read> {
     pub chunk: &'a mut Chunk,
@@ -60,8 +62,12 @@ impl<'a, R: Read> Parser<'a, R> {
         self.advance().map_err(|err| {
             self.finish_code_execution(0);
 
+            #[cfg(feature = "debug_trace_execution")]
+            debug::_disassemble_chunk(self.chunk, "parser test");
+
             err
         })?;
+
         self.parse_expression()?;
         self.consume(Token::EoS)?;
 
@@ -172,7 +178,8 @@ impl<'a, R: Read> Parser<'a, R> {
 
     fn parse_unary_op(&mut self) -> Result<(), ParseError> {
         let sufix_operator = self.previus_token.clone();
-        // NOTE - Compile operand
+
+        // Compile operand
         self.parse_precedence(Precedence::Unary as u8)?;
 
         match sufix_operator {
